@@ -17,9 +17,12 @@ const Navbar = () => {
           <a href="#categories" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-body">Categories</a>
           <a href="#how" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-body">How It Works</a>
           <a href="#join" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-body">Join</a>
-          <button className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm transition-all hover:shadow-[var(--shadow-glow)]">
+          <a
+            href="#join"
+            className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm transition-all hover:shadow-[var(--shadow-glow)]"
+          >
             Get Early Access
-          </button>
+          </a>
         </div>
 
         {/* Mobile toggle */}
@@ -41,9 +44,13 @@ const Navbar = () => {
               <a href="#categories" onClick={() => setOpen(false)} className="text-sm text-muted-foreground hover:text-foreground font-body">Categories</a>
               <a href="#how" onClick={() => setOpen(false)} className="text-sm text-muted-foreground hover:text-foreground font-body">How It Works</a>
               <a href="#join" onClick={() => setOpen(false)} className="text-sm text-muted-foreground hover:text-foreground font-body">Join</a>
-              <button className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm w-fit">
+              <a
+                href="#join"
+                onClick={() => setOpen(false)}
+                className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm w-fit"
+              >
                 Get Early Access
-              </button>
+              </a>
             </div>
           </motion.div>
         )}
@@ -53,4 +60,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

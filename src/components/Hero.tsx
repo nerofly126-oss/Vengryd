@@ -56,13 +56,19 @@ const Hero = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.45 }}
           >
-            <button className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-lg transition-all hover:shadow-[var(--shadow-glow)] hover:scale-[1.02]">
+            <a
+              href="#join"
+              className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-lg transition-all hover:shadow-[var(--shadow-glow)] hover:scale-[1.02]"
+            >
               Join the Waitlist
               <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-            </button>
-            <button className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg border border-border text-foreground font-display font-medium text-lg transition-all hover:bg-secondary hover:border-muted-foreground/30">
+            </a>
+            <a
+              href="#how"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg border border-border text-foreground font-display font-medium text-lg transition-all hover:bg-secondary hover:border-muted-foreground/30"
+            >
               Learn More
-            </button>
+            </a>
           </motion.div>
         </div>
       </div>

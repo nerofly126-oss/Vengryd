@@ -107,7 +107,7 @@ const CTA = () => {
             <p className="mt-4 text-sm text-destructive font-body">{errorMessage}</p>
           ) : (
             <p className="mt-4 text-sm text-muted-foreground font-body">
-              We&apos;ll store your email in Supabase table <span className="font-semibold text-foreground">{waitlistTable}</span>.
+              Join the waitlist for launch updates.
             </p>
           )}
         </motion.div>
