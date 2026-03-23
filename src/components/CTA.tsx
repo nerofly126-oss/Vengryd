@@ -1,14 +1,61 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useState } from "react";
+import { getSupabaseClient } from "@/lib/supabase";
+
+const waitlistTable = import.meta.env.VITE_SUPABASE_WAITLIST_TABLE || "waitlist_signups";
 
 const CTA = () => {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("You're on the list! We'll be in touch.");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) setSubmitted(true);
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      return;
+    }
+
+    setErrorMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.from(waitlistTable).insert({
+        email: normalizedEmail,
+      });
+
+      if (error) {
+        const isDuplicate =
+          error.code === "23505" ||
+          error.message.toLowerCase().includes("duplicate") ||
+          error.message.toLowerCase().includes("unique");
+
+        if (isDuplicate) {
+          setSubmitMessage("You're already on the list. We'll be in touch.");
+          setSubmitted(true);
+          return;
+        }
+
+        throw error;
+      }
+
+      setSubmitMessage("You're on the list! We'll be in touch.");
+      setSubmitted(true);
+      setEmail("");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while joining the waitlist.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -40,9 +87,10 @@ const CTA = () => {
               />
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="group inline-flex items-center justify-center gap-2 px-6 py-4 rounded-lg bg-primary text-primary-foreground font-display font-semibold transition-all hover:shadow-[var(--shadow-glow)] hover:scale-[1.02]"
               >
-                Join
+                {isSubmitting ? "Joining..." : "Join"}
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>
             </form>
@@ -52,8 +100,15 @@ const CTA = () => {
               animate={{ opacity: 1, scale: 1 }}
               className="inline-flex items-center gap-2 px-6 py-4 rounded-lg bg-accent/10 border border-accent/20 text-accent font-display font-semibold"
             >
-              🌿 You're on the list! We'll be in touch.
+              {submitMessage}
             </motion.div>
+          )}
+          {errorMessage ? (
+            <p className="mt-4 text-sm text-destructive font-body">{errorMessage}</p>
+          ) : (
+            <p className="mt-4 text-sm text-muted-foreground font-body">
+              We&apos;ll store your email in Supabase table <span className="font-semibold text-foreground">{waitlistTable}</span>.
+            </p>
           )}
         </motion.div>
       </div>
