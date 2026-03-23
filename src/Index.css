@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Nunito+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 30 15% 7%;
+    --foreground: 38 30% 92%;
+
+    --card: 30 12% 11%;
+    --card-foreground: 38 30% 92%;
+
+    --popover: 30 12% 11%;
+    --popover-foreground: 38 30% 92%;
+
+    --primary: 15 70% 50%;
+    --primary-foreground: 30 15% 7%;
+
+    --secondary: 30 10% 15%;
+    --secondary-foreground: 38 25% 85%;
+
+    --muted: 30 10% 15%;
+    --muted-foreground: 30 10% 50%;
+
+    --accent: 145 40% 35%;
+    --accent-foreground: 38 30% 92%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 30 12% 18%;
+    --input: 30 12% 18%;
+    --ring: 15 70% 50%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 30 12% 9%;
+    --sidebar-foreground: 38 25% 85%;
+    --sidebar-primary: 15 70% 50%;
+    --sidebar-primary-foreground: 30 15% 7%;
+    --sidebar-accent: 30 10% 15%;
+    --sidebar-accent-foreground: 38 25% 85%;
+    --sidebar-border: 30 12% 18%;
+    --sidebar-ring: 15 70% 50%;
+
+    /* Custom tokens */
+    --gradient-earth: linear-gradient(135deg, hsl(15 70% 50%), hsl(25 65% 40%));
+    --gradient-forest: linear-gradient(135deg, hsl(145 40% 35%), hsl(155 35% 25%));
+    --gradient-dark: linear-gradient(180deg, hsl(30 15% 7%), hsl(30 12% 11%));
+    --gradient-card: linear-gradient(135deg, hsl(30 12% 11%), hsl(30 10% 15%));
+    --shadow-glow: 0 0 40px hsl(15 70% 50% / 0.2);
+    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.3);
+    --shadow-leaf: 0 0 30px hsl(145 40% 35% / 0.1);
+
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Nunito Sans', sans-serif;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+}
