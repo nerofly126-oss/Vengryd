@@ -6,7 +6,7 @@ const Footer = () => {
           veng<span className="text-primary">ryd</span>
         </a>
         <p className="text-sm text-muted-foreground font-body">
-          © {new Date().getFullYear()} vengryd. Rooted in community, growing together.
+          © {new Date().getFullYear()} vengryd. Be part of something local.
         </p>
       </div>
     </footer>

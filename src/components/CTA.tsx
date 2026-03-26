@@ -72,7 +72,7 @@ const CTA = () => {
             Ready to go <span className="text-primary">local</span>?
           </h2>
           <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto">
-            Join thousands of businesses and consumers building a stronger local economy. Be the first to know when vengryd launches.
+            Be among the first to hear when vengryd launches.
           </p>
 
           {!submitted ? (

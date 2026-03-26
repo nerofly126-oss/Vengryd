@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
@@ -17,12 +18,12 @@ const Navbar = () => {
           <a href="#categories" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-body">Categories</a>
           <a href="#how" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-body">How It Works</a>
           <a href="#join" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-body">Join</a>
-          <a
-            href="#join"
+          <Link
+            to="/auth/select"
             className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm transition-all hover:shadow-[var(--shadow-glow)]"
           >
-            Get Early Access
-          </a>
+            Log In / Sign Up
+          </Link>
         </div>
 
         {/* Mobile toggle */}
@@ -44,13 +45,13 @@ const Navbar = () => {
               <a href="#categories" onClick={() => setOpen(false)} className="text-sm text-muted-foreground hover:text-foreground font-body">Categories</a>
               <a href="#how" onClick={() => setOpen(false)} className="text-sm text-muted-foreground hover:text-foreground font-body">How It Works</a>
               <a href="#join" onClick={() => setOpen(false)} className="text-sm text-muted-foreground hover:text-foreground font-body">Join</a>
-              <a
-                href="#join"
+              <Link
+                to="/auth/select"
                 onClick={() => setOpen(false)}
                 className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm w-fit"
               >
-                Get Early Access
-              </a>
+                Log In / Sign Up
+              </Link>
             </div>
           </motion.div>
         )}
