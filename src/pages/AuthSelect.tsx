@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ShoppingBag, Sparkles, Store } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import welcomeBg from "@/assets/hero-marketplace.jpg";
+import welcomeBg from "@/assets/welcome-bg.jpg";
 import LeafCorners from "@/components/Leafcorners";
 
 type Role = "buyer" | "seller" | null;
