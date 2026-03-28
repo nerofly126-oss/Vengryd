@@ -1,121 +1,205 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, ShoppingBag, Store } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { ShoppingBag, Sparkles, Store } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import welcomeBg from "@/assets/hero-marketplace.jpg";
 import LeafCorners from "@/components/Leafcorners";
 
-const roles = {
-  buyer: {
-    title: "Buyer profile",
-    description: "Discover local goods, trusted sellers, and wholesale opportunities near you.",
-    icon: ShoppingBag,
-  },
-  seller: {
-    title: "Seller profile",
-    description: "Showcase your products, reach nearby customers, and grow your local presence.",
-    icon: Store,
-  },
-} as const;
-
-type Role = keyof typeof roles;
+type Role = "buyer" | "seller" | null;
 
 const AuthSelect = () => {
+  const [role, setRole] = useState<Role>("buyer");
+  const [confirmed, setConfirmed] = useState(false);
   const navigate = useNavigate();
-  const [selectedRole, setSelectedRole] = useState<Role>("buyer");
 
-  const activeRole = roles[selectedRole];
-  const ActiveIcon = activeRole.icon;
+  const handleConfirm = () => {
+    if (!role) {
+      return;
+    }
+
+    setConfirmed(true);
+  };
+
+  const handleContinue = () => {
+    if (!role) {
+      return;
+    }
+
+    navigate(`/auth?role=${role}`);
+  };
 
   return (
-    <div className="min-h-[100dvh] bg-background relative overflow-hidden">
-      <LeafCorners />
-
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-20 left-[-4rem] h-64 w-64 rounded-full bg-primary/5 blur-[96px] sm:top-1/4 sm:left-1/4 sm:h-96 sm:w-96 sm:blur-[120px]" />
-        <div className="absolute bottom-16 right-[-3rem] h-56 w-56 rounded-full bg-accent/5 blur-[88px] sm:bottom-1/4 sm:right-1/4 sm:h-80 sm:w-80 sm:blur-[100px]" />
+    <div className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-background px-4 py-6">
+      <div className="absolute inset-0">
+        <img
+          src={welcomeBg}
+          alt=""
+          className="h-full w-full object-cover"
+          width={1920}
+          height={1080}
+        />
+        <div className="absolute inset-0 bg-background/85 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/20 to-background/95" />
       </div>
 
-      <div className="relative z-10 flex min-h-[100dvh] items-start justify-center overflow-y-auto px-4 py-6 sm:items-center sm:px-6 sm:py-10">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-2xl"
-        >
-          <Link
-            to="/"
-            className="mb-5 inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground font-body text-sm sm:mb-8"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to home
-          </Link>
+      <LeafCorners />
 
-          <div className="rounded-3xl border border-border bg-card/80 p-5 shadow-[var(--shadow-card)] backdrop-blur-xl sm:p-8 md:p-10">
-            <div className="mx-auto mb-8 max-w-xl text-center sm:mb-10">
-              <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Choose your path on veng<span className="text-primary">ryd</span>
-              </h1>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground font-body sm:text-base">
-                Pick the profile that matches how you want to use the marketplace, then continue to login or sign up.
-              </p>
-            </div>
-
-            <div className="mx-auto max-w-xl">
-              <div className="rounded-2xl border border-border bg-secondary/40 p-1.5">
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedRole("buyer")}
-                    className={`rounded-xl px-4 py-3 text-sm font-medium transition-all font-body ${
-                      selectedRole === "buyer"
-                        ? "bg-primary text-primary-foreground shadow-md"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                    }`}
-                  >
-                    Buyer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedRole("seller")}
-                    className={`rounded-xl px-4 py-3 text-sm font-medium transition-all font-body ${
-                      selectedRole === "seller"
-                        ? "bg-primary text-primary-foreground shadow-md"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                    }`}
-                  >
-                    Seller
-                  </button>
-                </div>
-              </div>
-
-              <motion.div
-                key={selectedRole}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-                className="mt-5 rounded-2xl border border-border bg-secondary/20 p-5 sm:p-6"
-              >
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <ActiveIcon className="h-6 w-6" />
-                </div>
-                <h2 className="mt-5 font-display text-2xl font-semibold text-foreground">
-                  {activeRole.title}
-                </h2>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground font-body sm:text-base">
-                  {activeRole.description}
-                </p>
-              </motion.div>
-
+      <div className="relative z-10 w-full max-w-lg">
+        <AnimatePresence mode="wait">
+          {!confirmed ? (
+            <motion.div
+              key="select"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -24 }}
+              transition={{ duration: 0.4 }}
+              className="rounded-[2rem] border border-border/60 bg-card/75 p-6 text-center shadow-[var(--shadow-card)] backdrop-blur-xl sm:p-8"
+            >
               <button
                 type="button"
-                onClick={() => navigate(`/auth?role=${selectedRole}`)}
-                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-4 text-sm font-semibold text-primary-foreground transition-all hover:shadow-[var(--shadow-glow)] hover:brightness-110 font-display"
+                onClick={() => navigate("/")}
+                className="mb-5 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground font-body"
               >
-                Continue as {selectedRole}
+                Back to home
               </button>
-            </div>
-          </div>
-        </motion.div>
+
+              <h1 className="mb-2 font-display text-3xl font-bold tracking-wide text-foreground">
+                veng<span className="text-primary">ryd</span>
+              </h1>
+              <p className="mb-10 text-sm text-muted-foreground font-body">
+                How would you like to use the marketplace?
+              </p>
+
+              <div className="mb-8">
+                <div className="mx-auto mb-5 max-w-sm rounded-2xl border border-border/70 bg-secondary/50 p-1.5">
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setRole("buyer")}
+                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-all font-body ${
+                        role === "buyer"
+                          ? "bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
+                          : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+                      }`}
+                    >
+                      Buyer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole("seller")}
+                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-all font-body ${
+                        role === "seller"
+                          ? "bg-accent text-accent-foreground shadow-[var(--shadow-leaf)]"
+                          : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+                      }`}
+                    >
+                      Seller
+                    </button>
+                  </div>
+                </div>
+
+                <motion.div
+                  key={role ?? "none"}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="rounded-2xl border border-border/70 bg-card/80 p-6 text-left"
+                >
+                  <div
+                    className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl transition-colors ${
+                      role === "seller"
+                        ? "bg-accent text-accent-foreground"
+                        : "bg-primary text-primary-foreground"
+                    }`}
+                  >
+                    {role === "seller" ? (
+                      <Store className="h-6 w-6" />
+                    ) : (
+                      <ShoppingBag className="h-6 w-6" />
+                    )}
+                  </div>
+                  <h3 className="mb-1 font-display text-lg font-semibold text-foreground">
+                    {role === "seller" ? "Seller" : "Buyer"}
+                  </h3>
+                  <p className="text-xs leading-relaxed text-muted-foreground font-body">
+                    {role === "seller"
+                      ? "Share your craft, grow your audience, and build trust locally."
+                      : "Discover unique goods and support artisans you believe in."}
+                  </p>
+                </motion.div>
+              </div>
+
+              <motion.button
+                type="button"
+                onClick={handleConfirm}
+                disabled={!role}
+                whileTap={{ scale: 0.97 }}
+                className="inline-flex items-center rounded-xl bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110 hover:shadow-[var(--shadow-glow)] disabled:cursor-not-allowed disabled:opacity-40 font-display"
+              >
+                Continue
+              </motion.button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="welcome"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="rounded-[2rem] border border-border/60 bg-card/75 p-6 text-center shadow-[var(--shadow-card)] backdrop-blur-xl sm:p-8"
+            >
+              <button
+                type="button"
+                onClick={() => navigate("/")}
+                className="mb-5 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground font-body"
+              >
+                Back to home
+              </button>
+
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Sparkles className="mx-auto mb-6 h-10 w-10 text-primary" />
+              </motion.div>
+
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="mb-4 font-display text-4xl font-bold tracking-wide text-foreground md:text-5xl"
+              >
+                Welcome,{" "}
+                <span className={role === "buyer" ? "text-primary" : "text-accent"}>
+                  {role === "buyer" ? "Buyer" : "Seller"}
+                </span>
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="mx-auto mb-10 max-w-sm text-base text-muted-foreground font-body"
+              >
+                {role === "buyer"
+                  ? "Your journey to discovering authentic goods starts now. Explore curated finds from talented artisans."
+                  : "Your storefront awaits. Share your craft, tell your story, and connect with people who value it."}
+              </motion.p>
+
+              <motion.button
+                type="button"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                onClick={handleContinue}
+                whileTap={{ scale: 0.97 }}
+                className="inline-flex items-center rounded-xl bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110 hover:shadow-[var(--shadow-glow)] font-display"
+              >
+                Get Started
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, User, Mail, Lock, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import LeafCorners from "@/components/Leafcorners";
 import { getSupabaseClient } from "@/lib/supabase";
@@ -164,9 +164,8 @@ const Auth = () => {
         >
           <Link
             to="/auth/select"
-            className="mb-5 inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground font-body text-sm sm:mb-8"
+            className="mb-5 inline-flex items-center text-muted-foreground transition-colors hover:text-foreground font-body text-sm sm:mb-8"
           >
-            <ArrowLeft className="h-4 w-4" />
             Back to role selection
           </Link>
 
