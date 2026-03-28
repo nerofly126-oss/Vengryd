@@ -1,9 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useState } from "react";
-import { getSupabaseClient } from "@/lib/supabase";
-
-const waitlistTable = import.meta.env.VITE_SUPABASE_WAITLIST_TABLE || "waitlist_signups";
+import { joinWaitlist } from "@/lib/waitlist";
 
 const CTA = () => {
   const [email, setEmail] = useState("");
@@ -14,9 +12,7 @@ const CTA = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (!normalizedEmail) {
+    if (!email.trim()) {
       return;
     }
 
@@ -24,27 +20,19 @@ const CTA = () => {
     setIsSubmitting(true);
 
     try {
-      const supabase = getSupabaseClient();
-      const { error } = await supabase.from(waitlistTable).insert({
-        email: normalizedEmail,
-      });
+      const result = await joinWaitlist(email);
 
-      if (error) {
-        const isDuplicate =
-          error.code === "23505" ||
-          error.message.toLowerCase().includes("duplicate") ||
-          error.message.toLowerCase().includes("unique");
-
-        if (isDuplicate) {
-          setSubmitMessage("You're already on the list. We'll be in touch.");
-          setSubmitted(true);
-          return;
-        }
-
-        throw error;
+      if (result.alreadyJoined) {
+        setSubmitMessage("You're already on the list. We'll be in touch.");
+        setSubmitted(true);
+        return;
       }
 
-      setSubmitMessage("You're on the list! We'll be in touch.");
+      setSubmitMessage(
+        result.emailFailed
+          ? "You're on the list. We saved your spot, but your confirmation email is delayed."
+          : "You're on the list! Check your email for confirmation.",
+      );
       setSubmitted(true);
       setEmail("");
     } catch (error) {
