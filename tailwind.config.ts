@@ -14,8 +14,8 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        display: ["Playfair Display", "serif"],
-        body: ["Nunito Sans", "sans-serif"],
+        display: ["Bodoni Moda", "serif"],
+        body: ["Manrope", "sans-serif"],
       },
       colors: {
         earth: {

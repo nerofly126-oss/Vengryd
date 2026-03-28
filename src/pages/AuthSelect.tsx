@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ShoppingBag, Sparkles, Store } from "lucide-react";
+import { ShoppingBag, Store } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import welcomeBg from "@/assets/welcome-bg.jpg";
 import LeafCorners from "@/components/Leafcorners";
@@ -160,7 +160,19 @@ const AuthSelect = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <Sparkles className="mx-auto mb-6 h-10 w-10 text-primary" />
+                <div
+                  className={`mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl ${
+                    role === "buyer"
+                      ? "bg-primary/15 text-primary"
+                      : "bg-accent/15 text-accent"
+                  }`}
+                >
+                  {role === "buyer" ? (
+                    <ShoppingBag className="h-7 w-7" />
+                  ) : (
+                    <Store className="h-7 w-7" />
+                  )}
+                </div>
               </motion.div>
 
               <motion.h1
