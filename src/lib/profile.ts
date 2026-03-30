@@ -91,3 +91,18 @@ export async function getCurrentUserRole() {
 
   return (profile?.role as AppRole | undefined) ?? getRoleFromUser(user);
 }
+
+export async function getRoleForUser(user: User) {
+  const supabase = getSupabaseClient();
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return (profile?.role as AppRole | undefined) ?? getRoleFromUser(user);
+}

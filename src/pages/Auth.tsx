@@ -5,7 +5,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import LeafCorners from "@/components/Leafcorners";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
-import { ensureProfile, getDashboardPath, getRoleFromUser } from "@/lib/profile";
+import { ensureProfile, getDashboardPath, getRoleForUser } from "@/lib/profile";
 
 type AuthMode = "login" | "signup" | "reset";
 
@@ -16,8 +16,8 @@ const Auth = () => {
   const queryMode = searchParams.get("mode");
   const authError = searchParams.get("error_description") || searchParams.get("error");
   const normalizedRole = role === "buyer" || role === "seller" ? role : null;
-  const roleLabel = normalizedRole === "seller" ? "seller" : "buyer";
   const authConfigured = isSupabaseConfigured();
+  const [resolvedRole, setResolvedRole] = useState<"buyer" | "seller" | null>(normalizedRole);
   const [mode, setMode] = useState<AuthMode>(queryMode === "reset" ? "reset" : "login");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,11 +45,14 @@ const Auth = () => {
   }, [queryMode]);
 
   useEffect(() => {
-    if (!normalizedRole) {
-      navigate("/auth/select", { replace: true });
-      return;
+    if (normalizedRole) {
+      setResolvedRole(normalizedRole);
     }
+  }, [normalizedRole]);
 
+  const roleLabel = resolvedRole === "seller" ? "seller" : "buyer";
+
+  useEffect(() => {
     if (!authConfigured) {
       setErrorMessage("Authentication is not configured yet. Add your Supabase env vars to enable sign in.");
       return;
@@ -65,22 +68,18 @@ const Auth = () => {
         } = await supabase.auth.getSession();
 
         if (isMounted && session) {
-          const resolvedRole = getRoleFromUser(session.user) ?? normalizedRole;
+          await ensureProfile(session.user);
+          const sessionRole = await getRoleForUser(session.user);
+          setResolvedRole(sessionRole);
 
           if (mode === "reset") {
             setSuccessMessage("Enter a new password to finish recovering your account.");
             return;
           }
-
-          await ensureProfile(session.user);
-
-          if (!resolvedRole) {
-            setErrorMessage("We couldn't determine your account role. Please sign in again from role selection.");
-            return;
-          }
-
-          navigate(getDashboardPath(resolvedRole), { replace: true });
+          navigate(getDashboardPath(sessionRole), { replace: true });
+          return;
         }
+
       } catch (error) {
         if (isMounted) {
           setErrorMessage(error instanceof Error ? error.message : "Unable to verify your session.");
@@ -103,16 +102,12 @@ const Auth = () => {
           return;
         }
 
-        void ensureProfile(session.user);
-
-        const resolvedRole = getRoleFromUser(session.user) ?? normalizedRole;
-
-        if (!resolvedRole) {
-          setErrorMessage("We couldn't determine your account role. Please sign in again from role selection.");
-          return;
-        }
-
-        navigate(getDashboardPath(resolvedRole), { replace: true });
+        void (async () => {
+          await ensureProfile(session.user);
+          const sessionRole = await getRoleForUser(session.user);
+          setResolvedRole(sessionRole);
+          navigate(getDashboardPath(sessionRole), { replace: true });
+        })();
       }
     });
 
@@ -233,15 +228,16 @@ const Auth = () => {
 
         if (user) {
           await ensureProfile(user);
+          setResolvedRole(await getRoleForUser(user));
         }
 
-        const resolvedRole = getRoleFromUser(user) ?? normalizedRole;
+        const nextRole = user ? await getRoleForUser(user) : normalizedRole;
 
-        if (!resolvedRole) {
+        if (!nextRole) {
           throw new Error("We couldn't determine your account role after sign in.");
         }
 
-        navigate(getDashboardPath(resolvedRole), { replace: true });
+        navigate(getDashboardPath(nextRole), { replace: true });
       } else {
         const { data, error } = await supabase.auth.updateUser({
           password,
@@ -253,15 +249,16 @@ const Auth = () => {
 
         if (data.user) {
           await ensureProfile(data.user);
+          setResolvedRole(await getRoleForUser(data.user));
         }
 
-        const resolvedRole = getRoleFromUser(data.user) ?? normalizedRole;
+        const nextRole = data.user ? await getRoleForUser(data.user) : normalizedRole;
 
-        if (!resolvedRole) {
+        if (!nextRole) {
           throw new Error("We couldn't determine your account role after resetting your password.");
         }
 
-        navigate(getDashboardPath(resolvedRole), { replace: true });
+        navigate(getDashboardPath(nextRole), { replace: true });
       }
     } catch (error) {
       setErrorMessage(
