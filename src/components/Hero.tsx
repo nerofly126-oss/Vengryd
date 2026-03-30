@@ -58,14 +58,14 @@ const Hero = () => {
           >
             <a
               href="#join"
-              className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-lg transition-all hover:shadow-[var(--shadow-glow)] hover:scale-[1.02]"
+              className="liquid-button liquid-button-primary group px-8 py-4 font-display text-lg font-semibold"
             >
               Join the Waitlist
               <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
             </a>
             <a
               href="#how"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg border border-border text-foreground font-display font-medium text-lg transition-all hover:bg-secondary hover:border-muted-foreground/30"
+              className="liquid-button liquid-button-soft px-8 py-4 font-display text-lg font-medium"
             >
               Learn More
             </a>

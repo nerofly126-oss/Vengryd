@@ -76,7 +76,7 @@ const CTA = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="group inline-flex items-center justify-center gap-2 px-6 py-4 rounded-lg bg-primary text-primary-foreground font-display font-semibold transition-all hover:shadow-[var(--shadow-glow)] hover:scale-[1.02]"
+                className="liquid-button liquid-button-primary group px-6 py-4 font-display font-semibold"
               >
                 {isSubmitting ? "Joining..." : "Join"}
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />

@@ -164,7 +164,7 @@ const Auth = () => {
         >
           <Link
             to="/auth/select"
-            className="mb-5 inline-flex items-center text-muted-foreground transition-colors hover:text-foreground font-body text-sm sm:mb-8"
+            className="liquid-button liquid-button-soft mb-5 px-4 py-2 text-sm font-body sm:mb-8"
           >
             Back to role selection
           </Link>
@@ -187,7 +187,7 @@ const Auth = () => {
                 type="button"
                 onClick={() => void handleOAuth("google")}
                 disabled={isSubmitting}
-                className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-secondary/50 px-4 py-3 text-center text-sm font-medium text-foreground transition-all hover:bg-secondary hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 font-body"
+                className="liquid-button liquid-button-soft w-full px-4 py-3 text-center text-sm font-body font-medium disabled:cursor-not-allowed"
               >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -214,7 +214,7 @@ const Auth = () => {
                 type="button"
                 onClick={() => void handleOAuth("apple")}
                 disabled={isSubmitting}
-                className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-secondary/50 px-4 py-3 text-center text-sm font-medium text-foreground transition-all hover:bg-secondary hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 font-body"
+                className="liquid-button liquid-button-soft w-full px-4 py-3 text-center text-sm font-body font-medium disabled:cursor-not-allowed"
               >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
@@ -224,23 +224,20 @@ const Auth = () => {
             </div>
 
             <div className="mb-5 flex items-center gap-3 sm:mb-6 sm:gap-4">
-              <div className="h-px flex-1 bg-border" />
+              <div className="h-px flex-1 bg-border/40" />
               <span className="text-xs uppercase tracking-wider text-muted-foreground font-body">or</span>
-              <div className="h-px flex-1 bg-border" />
+              <div className="h-px flex-1 bg-border/40" />
             </div>
 
-            <div className="mb-5 flex rounded-xl bg-secondary/50 p-1 sm:mb-6">
+            <div className="liquid-segmented mb-5 sm:mb-6">
               <button
                 type="button"
                 onClick={() => {
                   resetMessages();
                   setMode("login");
                 }}
-                className={`flex-1 rounded-lg px-2 py-2 text-sm font-medium transition-all font-body ${
-                  mode === "login"
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                data-active={mode === "login"}
+                className="liquid-segment flex-1 px-2 py-2 text-sm font-body font-medium"
               >
                 Log In
               </button>
@@ -250,11 +247,8 @@ const Auth = () => {
                   resetMessages();
                   setMode("signup");
                 }}
-                className={`flex-1 rounded-lg px-2 py-2 text-sm font-medium transition-all font-body ${
-                  mode === "signup"
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                data-active={mode === "signup"}
+                className="liquid-segment flex-1 px-2 py-2 text-sm font-body font-medium"
               >
                 Sign Up
               </button>
@@ -326,7 +320,7 @@ const Auth = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword((current) => !current)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 liquid-button liquid-button-icon liquid-button-soft h-8 w-8 text-muted-foreground hover:text-foreground"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -335,7 +329,7 @@ const Auth = () => {
 
             {mode === "login" && (
               <div className="text-right">
-                <button type="button" className="text-primary text-xs font-body hover:underline">
+                <button type="button" className="liquid-button liquid-button-soft px-3 py-1.5 text-xs font-body">
                   Forgot password?
                 </button>
               </div>
@@ -352,7 +346,7 @@ const Auth = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="mt-2 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110 hover:shadow-[var(--shadow-glow)] disabled:cursor-not-allowed disabled:opacity-60 font-display"
+                className="liquid-button liquid-button-primary mt-2 w-full py-3 text-sm font-display font-semibold disabled:cursor-not-allowed"
               >
                 {isSubmitting ? "Please wait..." : mode === "login" ? "Log In" : "Create Account"}
               </button>
@@ -368,7 +362,7 @@ const Auth = () => {
                       resetMessages();
                       setMode("signup");
                     }}
-                    className="text-primary hover:underline"
+                    className="liquid-button liquid-button-soft ml-2 px-3 py-1 text-xs font-body"
                   >
                     Sign up
                   </button>
@@ -382,7 +376,7 @@ const Auth = () => {
                       resetMessages();
                       setMode("login");
                     }}
-                    className="text-primary hover:underline"
+                    className="liquid-button liquid-button-soft ml-2 px-3 py-1 text-xs font-body"
                   >
                     Log in
                   </button>

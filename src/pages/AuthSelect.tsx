@@ -58,7 +58,7 @@ const AuthSelect = () => {
               <button
                 type="button"
                 onClick={() => navigate("/")}
-                className="mb-5 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground font-body"
+                className="liquid-button liquid-button-soft mb-5 px-4 py-2 text-sm font-body"
               >
                 Back to home
               </button>
@@ -71,29 +71,23 @@ const AuthSelect = () => {
               </p>
 
               <div className="mb-8">
-                <div className="mx-auto mb-5 max-w-sm rounded-2xl border border-border/70 bg-secondary/50 p-1.5">
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setRole("buyer")}
-                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-all font-body ${
-                        role === "buyer"
-                          ? "bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
-                          : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
-                      }`}
-                    >
-                      Buyer
-                    </button>
+                <div className="liquid-segmented mx-auto mb-5 max-w-sm">
+                  <div className="grid w-full grid-cols-2 gap-1">
                     <button
                       type="button"
                       onClick={() => setRole("seller")}
-                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-all font-body ${
-                        role === "seller"
-                          ? "bg-accent text-accent-foreground shadow-[var(--shadow-leaf)]"
-                          : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
-                      }`}
+                      data-active={role === "seller"}
+                      className="liquid-segment w-full px-4 py-3 text-sm font-semibold font-body"
                     >
                       Seller
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole("buyer")}
+                      data-active={role === "buyer"}
+                      className="liquid-segment w-full px-4 py-3 text-sm font-semibold font-body"
+                    >
+                      Buyer
                     </button>
                   </div>
                 </div>
@@ -134,7 +128,7 @@ const AuthSelect = () => {
                 onClick={handleConfirm}
                 disabled={!role}
                 whileTap={{ scale: 0.97 }}
-                className="inline-flex items-center rounded-xl bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110 hover:shadow-[var(--shadow-glow)] disabled:cursor-not-allowed disabled:opacity-40 font-display"
+                className="liquid-button liquid-button-primary px-8 py-3 text-sm font-display font-semibold disabled:cursor-not-allowed"
               >
                 Continue
               </motion.button>
@@ -150,7 +144,7 @@ const AuthSelect = () => {
               <button
                 type="button"
                 onClick={() => navigate("/")}
-                className="mb-5 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground font-body"
+                className="liquid-button liquid-button-soft mb-5 px-4 py-2 text-sm font-body"
               >
                 Back to home
               </button>
@@ -205,7 +199,7 @@ const AuthSelect = () => {
                 transition={{ delay: 0.7 }}
                 onClick={handleContinue}
                 whileTap={{ scale: 0.97 }}
-                className="inline-flex items-center rounded-xl bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110 hover:shadow-[var(--shadow-glow)] font-display"
+                className="liquid-button liquid-button-primary px-8 py-3 text-sm font-display font-semibold"
               >
                 Get Started
               </motion.button>
