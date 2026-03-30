@@ -5,8 +5,12 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 let supabaseClient: SupabaseClient | null = null;
 
+export function isSupabaseConfigured() {
+  return Boolean(supabaseUrl && supabaseAnonKey);
+}
+
 export function getSupabaseClient() {
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!isSupabaseConfigured()) {
     throw new Error("Missing Supabase environment variables.");
   }
 

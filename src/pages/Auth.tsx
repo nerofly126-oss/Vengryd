@@ -1,26 +1,48 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Lock, Store } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import type { User } from "@supabase/supabase-js";
 import LeafCorners from "@/components/Leafcorners";
-import { getSupabaseClient } from "@/lib/supabase";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+import { ensureProfile, getDashboardPath, getRoleFromUser } from "@/lib/profile";
+
+type AuthMode = "login" | "signup" | "reset";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const role = searchParams.get("role");
+  const queryMode = searchParams.get("mode");
+  const authError = searchParams.get("error_description") || searchParams.get("error");
   const normalizedRole = role === "buyer" || role === "seller" ? role : null;
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const roleLabel = normalizedRole === "seller" ? "seller" : "buyer";
+  const authConfigured = isSupabaseConfigured();
+  const [mode, setMode] = useState<AuthMode>(queryMode === "reset" ? "reset" : "login");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [form, setForm] = useState({
     fullName: "",
+    businessName: "",
     username: "",
     email: "",
     password: "",
   });
+
+  useEffect(() => {
+    if (authError) {
+      setErrorMessage(authError);
+    }
+  }, [authError]);
+
+  useEffect(() => {
+    if (queryMode === "reset") {
+      setMode("reset");
+      setSuccessMessage("Enter a new password to finish recovering your account.");
+    }
+  }, [queryMode]);
 
   useEffect(() => {
     if (!normalizedRole) {
@@ -28,35 +50,90 @@ const Auth = () => {
       return;
     }
 
+    if (!authConfigured) {
+      setErrorMessage("Authentication is not configured yet. Add your Supabase env vars to enable sign in.");
+      return;
+    }
+
     let isMounted = true;
+    const supabase = getSupabaseClient();
 
     const checkSession = async () => {
       try {
-        const supabase = getSupabaseClient();
         const {
           data: { session },
         } = await supabase.auth.getSession();
 
         if (isMounted && session) {
-          navigate("/", { replace: true });
+          const resolvedRole = getRoleFromUser(session.user) ?? normalizedRole;
+
+          if (mode === "reset") {
+            setSuccessMessage("Enter a new password to finish recovering your account.");
+            return;
+          }
+
+          await ensureProfile(session.user);
+
+          if (!resolvedRole) {
+            setErrorMessage("We couldn't determine your account role. Please sign in again from role selection.");
+            return;
+          }
+
+          navigate(getDashboardPath(resolvedRole), { replace: true });
         }
-      } catch {
-        // Let the page render normally if auth env vars are not configured yet.
+      } catch (error) {
+        if (isMounted) {
+          setErrorMessage(error instanceof Error ? error.message : "Unable to verify your session.");
+        }
       }
     };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("reset");
+        setErrorMessage("");
+        setSuccessMessage("Enter a new password to finish recovering your account.");
+        return;
+      }
+
+      if (session) {
+        if (mode === "reset") {
+          return;
+        }
+
+        void ensureProfile(session.user);
+
+        const resolvedRole = getRoleFromUser(session.user) ?? normalizedRole;
+
+        if (!resolvedRole) {
+          setErrorMessage("We couldn't determine your account role. Please sign in again from role selection.");
+          return;
+        }
+
+        navigate(getDashboardPath(resolvedRole), { replace: true });
+      }
+    });
 
     void checkSession();
 
     return () => {
       isMounted = false;
+      subscription.unsubscribe();
     };
-  }, [navigate, normalizedRole]);
+  }, [authConfigured, mode, navigate, normalizedRole]);
 
-  const roleLabel = normalizedRole === "seller" ? "seller" : "buyer";
   const roleHeading =
-    normalizedRole === "seller" ? "Sell through the community" : "Shop through the community";
+    mode === "reset"
+      ? "Reset your password"
+      : normalizedRole === "seller"
+        ? "Sell through the community"
+        : "Shop through the community";
   const roleSubcopy =
-    mode === "login"
+    mode === "reset"
+      ? `Choose a new password for your ${roleLabel} account.`
+      : mode === "login"
       ? `Welcome back, ${roleLabel}.`
       : `Create your ${roleLabel} account to get started.`;
 
@@ -69,12 +146,26 @@ const Auth = () => {
     setSuccessMessage("");
   };
 
+  const getAuthClient = () => {
+    if (!authConfigured) {
+      throw new Error("Authentication is not configured yet. Add your Supabase env vars to enable sign in.");
+    }
+
+    return getSupabaseClient();
+  };
+
+  const setVisibleMode = (nextMode: Exclude<AuthMode, "reset">) => {
+    resetMessages();
+    setMode(nextMode);
+    navigate(`/auth?role=${roleLabel}`, { replace: true });
+  };
+
   const handleOAuth = async (provider: "google" | "apple") => {
     resetMessages();
     setIsSubmitting(true);
 
     try {
-      const supabase = getSupabaseClient();
+      const supabase = getAuthClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -104,7 +195,7 @@ const Auth = () => {
     const password = form.password.trim();
 
     try {
-      const supabase = getSupabaseClient();
+      const supabase = getAuthClient();
 
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
@@ -114,6 +205,7 @@ const Auth = () => {
             emailRedirectTo: `${window.location.origin}/auth?role=${roleLabel}`,
             data: {
               full_name: form.fullName.trim(),
+              business_name: form.businessName.trim(),
               username: form.username.trim(),
               role: roleLabel,
             },
@@ -125,7 +217,7 @@ const Auth = () => {
         }
 
         setSuccessMessage("Check your email to confirm your account.");
-      } else {
+      } else if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({
           email: normalizedEmail,
           password,
@@ -135,12 +227,76 @@ const Auth = () => {
           throw error;
         }
 
-        navigate("/", { replace: true });
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          await ensureProfile(user);
+        }
+
+        const resolvedRole = getRoleFromUser(user) ?? normalizedRole;
+
+        if (!resolvedRole) {
+          throw new Error("We couldn't determine your account role after sign in.");
+        }
+
+        navigate(getDashboardPath(resolvedRole), { replace: true });
+      } else {
+        const { data, error } = await supabase.auth.updateUser({
+          password,
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        if (data.user) {
+          await ensureProfile(data.user);
+        }
+
+        const resolvedRole = getRoleFromUser(data.user) ?? normalizedRole;
+
+        if (!resolvedRole) {
+          throw new Error("We couldn't determine your account role after resetting your password.");
+        }
+
+        navigate(getDashboardPath(resolvedRole), { replace: true });
       }
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to complete authentication.",
       );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    resetMessages();
+
+    const normalizedEmail = form.email.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      setErrorMessage("Enter your email address first, then try resetting your password.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const supabase = getAuthClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: `${window.location.origin}/auth?role=${roleLabel}&mode=reset`,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setSuccessMessage("Password reset instructions have been sent to your email.");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to send reset instructions.");
     } finally {
       setIsSubmitting(false);
     }
@@ -182,11 +338,12 @@ const Auth = () => {
               </p>
             </div>
 
-            <div className="mb-5 flex flex-col gap-3 sm:mb-6">
+            {mode !== "reset" ? (
+              <div className="mb-5 flex flex-col gap-3 sm:mb-6">
               <button
                 type="button"
                 onClick={() => void handleOAuth("google")}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !authConfigured}
                 className="liquid-button liquid-button-soft w-full px-4 py-3 text-center text-sm font-body font-medium disabled:cursor-not-allowed"
               >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -213,7 +370,7 @@ const Auth = () => {
               <button
                 type="button"
                 onClick={() => void handleOAuth("apple")}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !authConfigured}
                 className="liquid-button liquid-button-soft w-full px-4 py-3 text-center text-sm font-body font-medium disabled:cursor-not-allowed"
               >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -221,21 +378,22 @@ const Auth = () => {
               </svg>
                 Continue with Apple
               </button>
-            </div>
+              </div>
+            ) : null}
 
-            <div className="mb-5 flex items-center gap-3 sm:mb-6 sm:gap-4">
-              <div className="h-px flex-1 bg-border/40" />
-              <span className="text-xs uppercase tracking-wider text-muted-foreground font-body">or</span>
-              <div className="h-px flex-1 bg-border/40" />
-            </div>
+            {mode !== "reset" ? (
+              <div className="mb-5 flex items-center gap-3 sm:mb-6 sm:gap-4">
+                <div className="h-px flex-1 bg-border/40" />
+                <span className="text-xs uppercase tracking-wider text-muted-foreground font-body">or</span>
+                <div className="h-px flex-1 bg-border/40" />
+              </div>
+            ) : null}
 
-            <div className="liquid-segmented mb-5 sm:mb-6">
+            {mode !== "reset" ? (
+              <div className="liquid-segmented mb-5 sm:mb-6">
               <button
                 type="button"
-                onClick={() => {
-                  resetMessages();
-                  setMode("login");
-                }}
+                onClick={() => setVisibleMode("login")}
                 data-active={mode === "login"}
                 className="liquid-segment flex-1 px-2 py-2 text-sm font-body font-medium"
               >
@@ -243,16 +401,14 @@ const Auth = () => {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  resetMessages();
-                  setMode("signup");
-                }}
+                onClick={() => setVisibleMode("signup")}
                 data-active={mode === "signup"}
                 className="liquid-segment flex-1 px-2 py-2 text-sm font-body font-medium"
               >
                 Sign Up
               </button>
-            </div>
+              </div>
+            ) : null}
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <AnimatePresence mode="wait">
@@ -278,6 +434,18 @@ const Auth = () => {
                   </div>
 
                   <div className="relative">
+                    <Store className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      name="businessName"
+                      value={form.businessName}
+                      onChange={handleChange}
+                      placeholder="Business name"
+                      required={mode === "signup"}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-secondary/30 text-foreground placeholder:text-muted-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                    />
+                  </div>
+
+                  <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-body text-sm">@</span>
                     <input
                       name="username"
@@ -292,18 +460,20 @@ const Auth = () => {
               )}
             </AnimatePresence>
 
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="Email address"
-                required
-                className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-secondary/30 text-foreground placeholder:text-muted-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-              />
-            </div>
+            {mode !== "reset" ? (
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="Email address"
+                  required
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-secondary/30 text-foreground placeholder:text-muted-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                />
+              </div>
+            ) : null}
 
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -312,7 +482,7 @@ const Auth = () => {
                 type={showPassword ? "text" : "password"}
                 value={form.password}
                 onChange={handleChange}
-                placeholder="Password"
+                placeholder={mode === "reset" ? "New password" : "Password"}
                 required
                 minLength={8}
                 className="w-full pl-10 pr-11 py-3 rounded-xl border border-border bg-secondary/30 text-foreground placeholder:text-muted-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
@@ -329,7 +499,12 @@ const Auth = () => {
 
             {mode === "login" && (
               <div className="text-right">
-                <button type="button" className="liquid-button liquid-button-soft px-3 py-1.5 text-xs font-body">
+                <button
+                  type="button"
+                  onClick={() => void handleForgotPassword()}
+                  disabled={isSubmitting || !authConfigured}
+                  className="liquid-button liquid-button-soft px-3 py-1.5 text-xs font-body disabled:cursor-not-allowed"
+                >
                   Forgot password?
                 </button>
               </div>
@@ -343,25 +518,45 @@ const Auth = () => {
               <p className="text-sm text-accent font-body">{successMessage}</p>
             ) : null}
 
+            {!authConfigured ? (
+              <p className="text-xs text-muted-foreground font-body">
+                Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to enable authentication.
+              </p>
+            ) : null}
+
+            {mode === "reset" ? (
+              <p className="text-xs text-muted-foreground font-body">
+                Use at least 8 characters. Once updated, we&apos;ll send you straight back into your dashboard.
+              </p>
+            ) : null}
+
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !authConfigured}
                 className="liquid-button liquid-button-primary mt-2 w-full py-3 text-sm font-display font-semibold disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "Please wait..." : mode === "login" ? "Log In" : "Create Account"}
+                {isSubmitting ? "Please wait..." : mode === "login" ? "Log In" : mode === "signup" ? "Create Account" : "Update Password"}
               </button>
             </form>
 
             <p className="mt-6 text-center text-xs text-muted-foreground font-body">
-              {mode === "login" ? (
+              {mode === "reset" ? (
+                <>
+                  Remembered your password?{" "}
+                  <button
+                    type="button"
+                    onClick={() => setVisibleMode("login")}
+                    className="liquid-button liquid-button-soft ml-2 px-3 py-1 text-xs font-body"
+                  >
+                    Back to login
+                  </button>
+                </>
+              ) : mode === "login" ? (
                 <>
                   Don&apos;t have an account?{" "}
                   <button
                     type="button"
-                    onClick={() => {
-                      resetMessages();
-                      setMode("signup");
-                    }}
+                    onClick={() => setVisibleMode("signup")}
                     className="liquid-button liquid-button-soft ml-2 px-3 py-1 text-xs font-body"
                   >
                     Sign up
@@ -372,10 +567,7 @@ const Auth = () => {
                   Already have an account?{" "}
                   <button
                     type="button"
-                    onClick={() => {
-                      resetMessages();
-                      setMode("login");
-                    }}
+                    onClick={() => setVisibleMode("login")}
                     className="liquid-button liquid-button-soft ml-2 px-3 py-1 text-xs font-body"
                   >
                     Log in

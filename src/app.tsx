@@ -6,10 +6,13 @@ import { Toaster as Sonner } from "@/components/ui/soner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import LoadingScreen from "@/components/LoadingScreen";
+import { RoleGuard } from "@/components/RoleGuard";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import AuthSelect from "./pages/AuthSelect.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import BuyerDashboard from "./pages/BuyerDashboard.tsx";
+import SellerDashboard from "./pages/SellerDashboard.tsx";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +43,31 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<RoleGuard allowedRole="buyer"><BuyerDashboard /></RoleGuard>} />
+            <Route path="/dashboard/browse" element={<RoleGuard allowedRole="buyer"><BuyerDashboard /></RoleGuard>} />
+            <Route path="/dashboard/orders" element={<RoleGuard allowedRole="buyer"><BuyerDashboard /></RoleGuard>} />
+            <Route path="/dashboard/wishlist" element={<RoleGuard allowedRole="buyer"><BuyerDashboard /></RoleGuard>} />
+            <Route path="/dashboard/settings" element={<RoleGuard allowedRole="buyer"><BuyerDashboard /></RoleGuard>} />
+            <Route path="/buyer/dashboard" element={<RoleGuard allowedRole="buyer"><BuyerDashboard /></RoleGuard>} />
+            <Route path="/buyer/dashboard/browse" element={<RoleGuard allowedRole="buyer"><BuyerDashboard /></RoleGuard>} />
+            <Route path="/buyer/dashboard/orders" element={<RoleGuard allowedRole="buyer"><BuyerDashboard /></RoleGuard>} />
+            <Route path="/buyer/dashboard/wishlist" element={<RoleGuard allowedRole="buyer"><BuyerDashboard /></RoleGuard>} />
+            <Route path="/buyer/dashboard/settings" element={<RoleGuard allowedRole="buyer"><BuyerDashboard /></RoleGuard>} />
+            <Route path="/seller/products" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller/dashboard" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller/dashboard/orders" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller/dashboard/analytics" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller/dashboard/listings" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller/dashboard/messages" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller/dashboard/promotions" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller/dashboard/settings" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller-preview" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller-preview/orders" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller-preview/analytics" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller-preview/listings" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller-preview/messages" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller-preview/promotions" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
+            <Route path="/seller-preview/settings" element={<RoleGuard allowedRole="seller"><SellerDashboard /></RoleGuard>} />
             <Route path="/auth/select" element={<AuthSelect />} />
             <Route path="/auth" element={<Auth />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
