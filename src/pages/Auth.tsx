@@ -193,7 +193,7 @@ const Auth = () => {
       const supabase = getAuthClient();
 
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: normalizedEmail,
           password,
           options: {
@@ -209,6 +209,14 @@ const Auth = () => {
 
         if (error) {
           throw error;
+        }
+
+        if (data.user && data.session) {
+          await ensureProfile(data.user);
+          const nextRole = await getRoleForUser(data.user);
+          setResolvedRole(nextRole);
+          navigate(getDashboardPath(nextRole), { replace: true });
+          return;
         }
 
         setSuccessMessage("Check your email to confirm your account.");
