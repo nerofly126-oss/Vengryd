@@ -46,7 +46,6 @@ export async function ensureProfile(user: User) {
       id: user.id,
       role: getRoleFromUser(user),
       full_name: getFullName(user),
-      business_name: getRoleFromUser(user) === "seller" ? getBusinessName(user) : null,
       username: getUsername(user),
       location: "Lagos",
     },
