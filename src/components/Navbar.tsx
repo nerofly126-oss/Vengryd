@@ -2,6 +2,14 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 
+const MotionLink = motion(Link);
+
+const mobileLinks = [
+  { to: "/categories", label: "Categories" },
+  { to: "/how-it-works", label: "How It Works" },
+  { to: "/join", label: "Join" },
+];
+
 const mobileMenuVariants = {
   closed: {
     opacity: 0,
@@ -46,30 +54,28 @@ const Navbar = () => {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 px-3 pt-3 md:px-5">
-      <div className="mx-auto max-w-6xl">
+    <nav className="fixed inset-x-0 top-0 z-50 md:px-5 md:pt-3">
+      <div className="mx-auto w-full md:max-w-6xl">
         <div className="navbar-shell">
           <div className="container flex h-16 items-center justify-between">
-            <a href="/" className="font-display text-xl font-bold tracking-wide text-foreground">
-              veng<span className="text-primary">ryd</span>
+            <a href="/" className="font-display text-xl font-bold tracking-wide text-white">
+              ven<span className="text-primary">gryd</span>
             </a>
 
             {/* Desktop */}
-            <div className="hidden items-center gap-3 md:flex">
-              <div className="navbar-desktop-links">
-                <a href="#categories" className="navbar-desktop-link">
-                  Categories
-                </a>
-                <a href="#how" className="navbar-desktop-link">
-                  How It Works
-                </a>
-                <a href="#join" className="navbar-desktop-link">
-                  Join
-                </a>
-              </div>
+            <div className="hidden items-center gap-1 md:flex">
+              <a href="#categories" className="navbar-desktop-link">
+                Categories
+              </a>
+              <a href="#how" className="navbar-desktop-link">
+                How It Works
+              </a>
+              <a href="#join" className="navbar-desktop-link">
+                Join
+              </a>
               <Link
                 to="/auth/select"
-                className="liquid-button liquid-button-primary px-5 py-2 text-sm font-display font-semibold"
+                className="liquid-button liquid-button-primary ml-3 px-5 py-2 text-sm font-display font-semibold"
               >
                 Log In / Sign Up
               </Link>
@@ -100,30 +106,17 @@ const Navbar = () => {
               className="navbar-mobile-panel md:hidden"
             >
               <div className="container flex flex-col gap-2 px-5 py-4">
-                <motion.a
-                  variants={mobileItemVariants}
-                  href="#categories"
-                  onClick={() => setOpen(false)}
-                  className="navbar-mobile-link"
-                >
-                  Categories
-                </motion.a>
-                <motion.a
-                  variants={mobileItemVariants}
-                  href="#how"
-                  onClick={() => setOpen(false)}
-                  className="navbar-mobile-link"
-                >
-                  How It Works
-                </motion.a>
-                <motion.a
-                  variants={mobileItemVariants}
-                  href="#join"
-                  onClick={() => setOpen(false)}
-                  className="navbar-mobile-link"
-                >
-                  Join
-                </motion.a>
+                {mobileLinks.map((link) => (
+                  <MotionLink
+                    key={link.to}
+                    variants={mobileItemVariants}
+                    to={link.to}
+                    onClick={() => setOpen(false)}
+                    className="navbar-mobile-link"
+                  >
+                    {link.label}
+                  </MotionLink>
+                ))}
                 <motion.div variants={mobileItemVariants} className="pt-2">
                   <Link
                     to="/auth/select"

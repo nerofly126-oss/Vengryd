@@ -7,21 +7,24 @@ const config: Config = {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: {
+        DEFAULT: "1.25rem",
+        sm: "2rem",
+      },
       screens: {
         "2xl": "1400px",
       },
     },
     extend: {
       fontFamily: {
-        display: ["Bodoni Moda", "serif"],
-        body: ["Manrope", "sans-serif"],
+        display: ["Urbanist", "sans-serif"],
+        body: ["Urbanist", "sans-serif"],
       },
       colors: {
         earth: {
-          DEFAULT: "hsl(15 70% 50%)",
-          dark: "hsl(25 65% 40%)",
-          light: "hsl(12 60% 60%)",
+          DEFAULT: "hsl(142 56% 45%)",
+          dark: "hsl(155 45% 32%)",
+          light: "hsl(140 50% 58%)",
         },
         forest: {
           DEFAULT: "hsl(145 40% 35%)",

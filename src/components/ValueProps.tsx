@@ -13,32 +13,39 @@ const sellerProps = [
 
 const ValueProps = () => {
   return (
-    <section className="py-24">
+    <section className="py-16 md:py-24">
       <div className="container">
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-16">
+        <motion.div
+          className="max-w-3xl mb-16 md:text-right md:ml-auto"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <span className="eyebrow-kicker mb-6 md:flex-row-reverse">Why vengryd</span>
+          <h2 className="font-display font-black uppercase leading-[0.85] tracking-tighter text-5xl md:text-7xl">
+            Both sides of <span className="text-stroke">the trade</span>
+          </h2>
+        </motion.div>
+
+        <div className="grid md:grid-cols-2 gap-14 md:gap-16 lg:gap-24">
           {/* For Buyers */}
           <motion.div
-            className="p-8 md:p-10 rounded-2xl border border-border bg-gradient-to-br from-card to-secondary/30"
-            style={{ boxShadow: "var(--shadow-card)" }}
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-display font-semibold mb-6 uppercase tracking-wider">
-              For Buyers
-            </span>
-            <h3 className="font-display text-3xl font-bold mb-8">
+            <span className="eyebrow-kicker mb-6">For Buyers</span>
+            <h3 className="font-display text-3xl md:text-4xl font-bold mb-10">
               Source locally,<br />save globally.
             </h3>
-            <div className="space-y-6">
+            <div className="space-y-9">
               {buyerProps.map((p) => (
-                <div key={p.title} className="flex gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <p.icon className="w-6 h-6 text-primary" />
-                  </div>
+                <div key={p.title} className="flex gap-5">
+                  <p.icon className="shrink-0 w-8 h-8 text-primary" />
                   <div>
-                    <h4 className="font-display font-semibold text-foreground mb-1">{p.title}</h4>
+                    <h4 className="font-display text-lg font-bold text-foreground mb-1">{p.title}</h4>
                     <p className="text-muted-foreground text-sm leading-relaxed">{p.desc}</p>
                   </div>
                 </div>
@@ -48,27 +55,21 @@ const ValueProps = () => {
 
           {/* For Sellers */}
           <motion.div
-            className="p-8 md:p-10 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-card"
-            style={{ boxShadow: "var(--shadow-card)" }}
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-display font-semibold mb-6 uppercase tracking-wider">
-              For Sellers
-            </span>
-            <h3 className="font-display text-3xl font-bold mb-8">
+            <span className="eyebrow-kicker mb-6">For Sellers</span>
+            <h3 className="font-display text-3xl md:text-4xl font-bold mb-10">
               Your storefront,<br />your neighborhood.
             </h3>
-            <div className="space-y-6">
+            <div className="space-y-9">
               {sellerProps.map((p) => (
-                <div key={p.title} className="flex gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <p.icon className="w-6 h-6 text-primary" />
-                  </div>
+                <div key={p.title} className="flex gap-5">
+                  <p.icon className="shrink-0 w-8 h-8 text-primary" />
                   <div>
-                    <h4 className="font-display font-semibold text-foreground mb-1">{p.title}</h4>
+                    <h4 className="font-display text-lg font-bold text-foreground mb-1">{p.title}</h4>
                     <p className="text-muted-foreground text-sm leading-relaxed">{p.desc}</p>
                   </div>
                 </div>

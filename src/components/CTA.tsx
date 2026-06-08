@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { joinWaitlist } from "@/lib/waitlist";
 
@@ -47,8 +46,14 @@ const CTA = () => {
   };
 
   return (
-    <section className="py-32">
-      <div className="container">
+    <section className="relative py-20 md:py-32 overflow-hidden">
+      {/* Bold geometric shapes */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary/20 animate-spin-slow" />
+        <div className="absolute right-[14%] top-[18%] h-16 w-16 rounded-2xl bg-primary/20 [--rot:12deg] rotate-12 animate-floaty" />
+      </div>
+
+      <div className="container relative z-10">
         <motion.div
           className="max-w-3xl mx-auto text-center"
           initial={{ opacity: 0, y: 30 }}
@@ -56,8 +61,9 @@ const CTA = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="font-display text-4xl md:text-6xl font-bold mb-6">
-            Ready to go <span className="text-primary">local</span>?
+          <span className="eyebrow-kicker mb-6 justify-center">Join us</span>
+          <h2 className="font-display font-black uppercase leading-[0.82] tracking-tighter text-5xl md:text-7xl lg:text-8xl mb-6">
+            Ready to go <span className="text-stroke-primary">local</span>?
           </h2>
           <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto">
             Be among the first to hear when vengryd launches.
@@ -79,7 +85,6 @@ const CTA = () => {
                 className="liquid-button liquid-button-primary group px-6 py-4 font-display font-semibold"
               >
                 {isSubmitting ? "Joining..." : "Join"}
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>
             </form>
           ) : (

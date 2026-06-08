@@ -1,71 +1,60 @@
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
-import heroImage from "@/assets/hero-marketplace.jpg";
+import heroImage from "@/assets/welcome-bg.jpg";
 
 const Hero = () => {
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Background image with overlay */}
+      {/* Background image — fully visible, only a slim fade into the section below */}
       <div className="absolute inset-0">
         <img
           src={heroImage}
           alt="Local marketplace"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/60" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/40" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent" />
       </div>
 
       <div className="container relative z-10 py-32">
-        <div className="max-w-3xl">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+        <div className="max-w-4xl">
+          <motion.span
+            className="eyebrow-kicker eyebrow-kicker-light mb-8"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7 }}
           >
-            <span className="inline-block px-4 py-1.5 rounded-full border border-accent/30 bg-accent/10 text-accent text-sm font-medium font-display mb-6">
-              🌿 Rooted in Community
-            </span>
-          </motion.div>
+            The community marketplace
+          </motion.span>
 
           <motion.h1
-            className="font-display text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.95] tracking-tight mb-6"
+            className="font-display font-black uppercase leading-[0.82] tracking-tighter [text-shadow:0_4px_30px_rgba(0,0,0,0.65)]"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.15, ease: "easeOut" }}
+            transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
           >
-            Trade.{" "}Grow.
-            <br />
-            <span className="text-primary">Thrive.</span>
+            <span className="block text-5xl sm:text-7xl md:text-8xl lg:text-[9.5rem]">Trade.</span>
+            <span className="block text-5xl sm:text-7xl md:text-8xl lg:text-[9.5rem] md:pl-16 lg:pl-28">
+              Grow.
+            </span>
+            <span className="block text-5xl sm:text-7xl md:text-8xl lg:text-[9.5rem] text-primary md:pl-32 lg:pl-56">
+              Thrive.
+            </span>
           </motion.h1>
 
-          <motion.p
-            className="text-muted-foreground text-lg md:text-xl max-w-xl leading-relaxed mb-10 font-body"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          >
-            The Afrocentric marketplace connecting local businesses and consumers.
-            Whether you're sourcing wholesale or finding unique local goods —
-            vengryd brings your community online.
-          </motion.p>
-
           <motion.div
-            className="flex flex-col sm:flex-row gap-4"
+            className="mt-10 md:mt-12 flex flex-row flex-wrap items-start gap-3 sm:gap-4"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.45 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
           >
             <a
               href="#join"
-              className="liquid-button liquid-button-primary group px-8 py-4 font-display text-lg font-semibold"
+              className="liquid-button liquid-button-primary group px-5 py-2.5 text-sm md:px-8 md:py-4 md:text-lg font-display font-semibold"
             >
               Join the Waitlist
-              <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
             </a>
             <a
               href="#how"
-              className="liquid-button liquid-button-soft px-8 py-4 font-display text-lg font-medium"
+              className="liquid-button liquid-button-soft px-5 py-2.5 text-sm md:px-8 md:py-4 md:text-lg font-display font-medium"
             >
               Learn More
             </a>
