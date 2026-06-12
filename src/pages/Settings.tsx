@@ -46,6 +46,13 @@ const Settings = () => {
             </button>
           </div>
         </section>
+
+        <Link
+          to="/"
+          className="mt-8 inline-flex rounded-xl border-2 border-border px-6 py-3 text-sm font-display font-semibold uppercase tracking-tight text-foreground transition-colors hover:border-primary/50"
+        >
+          Back to website
+        </Link>
       </main>
     </div>
   );

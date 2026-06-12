@@ -5,11 +5,9 @@ import heroImage from "@/assets/welcome-bg.webp";
 const Hero = () => {
   return (
     <section className="relative flex min-h-[90vh] items-end overflow-hidden">
-      {/* Full-bleed image with a bottom/left scrim for legibility */}
+      {/* Full-bleed image */}
       <div className="absolute inset-0">
         <img src={heroImage} alt="Local marketplace" className="h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-background/10" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-transparent" />
       </div>
 
       <div className="container relative z-10 pb-20 pt-32 sm:pb-28">
