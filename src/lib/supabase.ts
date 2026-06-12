@@ -15,7 +15,15 @@ export function getSupabaseClient() {
   }
 
   if (!supabaseClient) {
-    supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+    supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        // Keep the user signed in across reloads/visits and auto-refresh the token.
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: "vengryd-auth",
+      },
+    });
   }
 
   return supabaseClient;

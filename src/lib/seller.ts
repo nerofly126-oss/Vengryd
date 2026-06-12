@@ -171,7 +171,7 @@ export function useSaveVendor() {
     mutationFn: async (input: SellerVendor) => {
       const supabase = getSupabaseClient();
       const user = await requireUser();
-      const row: Record<string, unknown> = {
+      const row = {
         seller_id: user.id,
         name: input.name,
         category_id: input.categoryId,
@@ -179,9 +179,22 @@ export function useSaveVendor() {
         services: input.services,
         image_url: input.imageUrl ?? null,
       };
-      if (input.id) row.id = input.id;
-      const { error } = await supabase.from("vendors").upsert(row, { onConflict: "seller_id" });
-      if (error) throw error;
+
+      // One vendor profile per seller: update if it exists, otherwise insert.
+      const { data: existing, error: findError } = await supabase
+        .from("vendors")
+        .select("id")
+        .eq("seller_id", user.id)
+        .maybeSingle();
+      if (findError) throw findError;
+
+      if (existing) {
+        const { error } = await supabase.from("vendors").update(row).eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("vendors").insert(row);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["my-vendor"] });

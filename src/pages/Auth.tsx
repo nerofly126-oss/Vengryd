@@ -161,7 +161,20 @@ const Auth = () => {
         });
 
         if (error) {
+          if (/already\s*registered|already\s*exists|user_already_exists/i.test(error.message)) {
+            setMode("login");
+            setErrorMessage("This email already has an account — please log in.");
+            return;
+          }
           throw error;
+        }
+
+        // With email confirmation on, Supabase returns a user with no identities
+        // for an already-registered email (anti-enumeration) instead of an error.
+        if (data.user && (data.user.identities?.length ?? 0) === 0) {
+          setMode("login");
+          setErrorMessage("This email already has an account — please log in.");
+          return;
         }
 
         if (data.user && data.session) {
