@@ -1,65 +1,64 @@
 import { motion } from "framer-motion";
-import heroImage from "@/assets/welcome-bg.jpg";
+import { Link } from "react-router-dom";
+import heroImage from "@/assets/welcome-bg.webp";
 
 const Hero = () => {
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Background image — fully visible, only a slim fade into the section below */}
+    <section className="relative flex min-h-[90vh] items-end overflow-hidden">
+      {/* Full-bleed image with a bottom/left scrim for legibility */}
       <div className="absolute inset-0">
-        <img
-          src={heroImage}
-          alt="Local marketplace"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent" />
+        <img src={heroImage} alt="Local marketplace" className="h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-background/10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-transparent" />
       </div>
 
-      <div className="container relative z-10 py-32">
-        <div className="max-w-4xl">
-          <motion.span
-            className="eyebrow-kicker eyebrow-kicker-light mb-8"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7 }}
-          >
-            The community marketplace
-          </motion.span>
+      <div className="container relative z-10 pb-20 pt-32 sm:pb-28">
+        <motion.span
+          className="eyebrow-kicker eyebrow-kicker-light mb-5"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          The community marketplace
+        </motion.span>
 
-          <motion.h1
-            className="font-display font-black uppercase leading-[0.82] tracking-tighter [text-shadow:0_4px_30px_rgba(0,0,0,0.65)]"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
-          >
-            <span className="block text-5xl sm:text-7xl md:text-8xl lg:text-[9.5rem]">Trade.</span>
-            <span className="block text-5xl sm:text-7xl md:text-8xl lg:text-[9.5rem] md:pl-16 lg:pl-28">
-              Grow.
-            </span>
-            <span className="block text-5xl sm:text-7xl md:text-8xl lg:text-[9.5rem] text-primary md:pl-32 lg:pl-56">
-              Thrive.
-            </span>
-          </motion.h1>
+        <motion.h1
+          className="max-w-3xl font-display text-5xl font-black uppercase leading-[0.88] tracking-tighter sm:text-7xl lg:text-8xl [text-shadow:0_4px_30px_rgba(0,0,0,0.6)]"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
+        >
+          Trade. Grow. <span className="text-primary">Thrive.</span>
+        </motion.h1>
 
-          <motion.div
-            className="mt-10 md:mt-12 flex flex-row flex-wrap items-start gap-3 sm:gap-4"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+        <motion.p
+          className="mt-5 max-w-xl text-base text-foreground/90 sm:text-lg [text-shadow:0_1px_10px_rgba(0,0,0,0.6)]"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.25 }}
+        >
+          Buy from and sell to vendors right in your neighbourhood — barbers, stylists, gadgets, food and more.
+        </motion.p>
+
+        <motion.div
+          className="mt-9 flex flex-wrap gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.4 }}
+        >
+          <Link
+            to="/dashboard"
+            className="liquid-button liquid-button-primary px-8 py-4 text-base font-display font-semibold sm:text-lg"
           >
-            <a
-              href="#join"
-              className="liquid-button liquid-button-primary group px-5 py-2.5 text-sm md:px-8 md:py-4 md:text-lg font-display font-semibold"
-            >
-              Join the Waitlist
-            </a>
-            <a
-              href="#how"
-              className="liquid-button liquid-button-soft px-5 py-2.5 text-sm md:px-8 md:py-4 md:text-lg font-display font-medium"
-            >
-              Learn More
-            </a>
-          </motion.div>
-        </div>
+            Shop the marketplace
+          </Link>
+          <Link
+            to="/seller"
+            className="liquid-button liquid-button-soft px-8 py-4 text-base font-display font-medium sm:text-lg"
+          >
+            Start selling
+          </Link>
+        </motion.div>
       </div>
     </section>
   );

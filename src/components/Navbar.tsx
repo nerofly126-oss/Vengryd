@@ -58,9 +58,9 @@ const Navbar = () => {
       <div className="mx-auto w-full md:max-w-6xl">
         <div className="navbar-shell">
           <div className="container flex h-16 items-center justify-between">
-            <a href="/" className="font-display text-xl font-bold tracking-wide text-white">
+            <Link to="/" className="font-display text-xl font-bold tracking-wide text-white">
               ven<span className="text-primary">gryd</span>
-            </a>
+            </Link>
 
             {/* Desktop */}
             <div className="hidden items-center gap-1 md:flex">
@@ -74,10 +74,10 @@ const Navbar = () => {
                 Join
               </a>
               <Link
-                to="/auth/select"
+                to="/dashboard"
                 className="liquid-button liquid-button-primary ml-3 px-5 py-2 text-sm font-display font-semibold"
               >
-                Log In / Sign Up
+                View Marketplace
               </Link>
             </div>
 
@@ -119,11 +119,11 @@ const Navbar = () => {
                 ))}
                 <motion.div variants={mobileItemVariants} className="pt-2">
                   <Link
-                    to="/auth/select"
+                    to="/dashboard"
                     onClick={() => setOpen(false)}
                     className="liquid-button liquid-button-primary px-5 py-2.5 text-sm font-display font-semibold"
                   >
-                    Log In / Sign Up
+                    View Marketplace
                   </Link>
                 </motion.div>
               </div>

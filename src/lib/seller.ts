@@ -1,0 +1,191 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { User } from "@supabase/supabase-js";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+
+export { useCurrentUser } from "@/lib/auth";
+
+const BUCKET = "catalog-images";
+
+export type SellerProduct = {
+  id?: string;
+  name: string;
+  categoryId: string;
+  price: number;
+  oldPrice?: number | null;
+  discount?: number | null;
+  stock?: number | null;
+  imageUrl?: string | null;
+  isFeatured: boolean;
+  isHotDeal: boolean;
+};
+
+export type SellerVendor = {
+  id?: string;
+  name: string;
+  categoryId: string;
+  area: string;
+  services: string[];
+  imageUrl?: string | null;
+};
+
+export type ProductRow = {
+  id: string;
+  name: string;
+  category_id: string | null;
+  image_url: string | null;
+  price: number | string;
+  old_price: number | string | null;
+  discount: number | null;
+  stock: number | null;
+  is_featured: boolean;
+  is_hot_deal: boolean;
+};
+
+export type VendorRow = {
+  id: string;
+  name: string;
+  category_id: string | null;
+  image_url: string | null;
+  area: string | null;
+  services: string[] | null;
+};
+
+async function requireUser(): Promise<User> {
+  const supabase = getSupabaseClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error) throw error;
+  if (!user) throw new Error("You need to be signed in to sell.");
+  return user;
+}
+
+export async function uploadImage(file: File, folder: "products" | "profile"): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("Please choose an image file.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("Images must be 5MB or smaller.");
+
+  const supabase = getSupabaseClient();
+  const user = await requireUser();
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${user.id}/${folder}/${Date.now()}.${ext}`;
+
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, { cacheControl: "3600", upsert: true });
+  if (error) throw error;
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return publicUrl;
+}
+
+/* ---------------- Products ---------------- */
+
+export function useMyProducts() {
+  return useQuery({
+    queryKey: ["my-products"],
+    queryFn: async (): Promise<ProductRow[]> => {
+      if (!isSupabaseConfigured()) return [];
+      const supabase = getSupabaseClient();
+      const user = await requireUser();
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, category_id, image_url, price, old_price, discount, stock, is_featured, is_hot_deal")
+        .eq("seller_id", user.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as ProductRow[];
+    },
+    initialData: [],
+  });
+}
+
+export function useSaveProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: SellerProduct) => {
+      const supabase = getSupabaseClient();
+      const user = await requireUser();
+      const row: Record<string, unknown> = {
+        seller_id: user.id,
+        name: input.name,
+        category_id: input.categoryId,
+        price: input.price,
+        old_price: input.oldPrice ?? null,
+        discount: input.discount ?? null,
+        stock: input.stock ?? null,
+        image_url: input.imageUrl ?? null,
+        is_featured: input.isFeatured,
+        is_hot_deal: input.isHotDeal,
+      };
+      if (input.id) row.id = input.id;
+      const { error } = await supabase.from("products").upsert(row, { onConflict: "id" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-products"] });
+      void qc.invalidateQueries({ queryKey: ["catalog-products"] });
+    },
+  });
+}
+
+export function useDeleteProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.from("products").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-products"] });
+      void qc.invalidateQueries({ queryKey: ["catalog-products"] });
+    },
+  });
+}
+
+/* ---------------- Vendor profile (one per seller) ---------------- */
+
+export function useMyVendor() {
+  return useQuery({
+    queryKey: ["my-vendor"],
+    queryFn: async (): Promise<VendorRow | null> => {
+      if (!isSupabaseConfigured()) return null;
+      const supabase = getSupabaseClient();
+      const user = await requireUser();
+      const { data, error } = await supabase
+        .from("vendors")
+        .select("id, name, category_id, image_url, area, services")
+        .eq("seller_id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as VendorRow | null) ?? null;
+    },
+    initialData: null,
+  });
+}
+
+export function useSaveVendor() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: SellerVendor) => {
+      const supabase = getSupabaseClient();
+      const user = await requireUser();
+      const row: Record<string, unknown> = {
+        seller_id: user.id,
+        name: input.name,
+        category_id: input.categoryId,
+        area: input.area,
+        services: input.services,
+        image_url: input.imageUrl ?? null,
+      };
+      if (input.id) row.id = input.id;
+      const { error } = await supabase.from("vendors").upsert(row, { onConflict: "seller_id" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-vendor"] });
+      void qc.invalidateQueries({ queryKey: ["catalog-vendors"] });
+    },
+  });
+}

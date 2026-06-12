@@ -11,8 +11,10 @@ import Categories from "@/components/Categories";
 import HowItWorks from "@/components/Howitworks";
 import CTA from "@/components/CTA";
 import Index from "./pages/Index.tsx";
+import BuyerDashboard from "./pages/BuyerDashboard.tsx";
+import SellerDashboard from "./pages/SellerDashboard.tsx";
+import VendorProfile from "./pages/VendorProfile.tsx";
 import Auth from "./pages/Auth.tsx";
-import AuthSelect from "./pages/AuthSelect.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -44,10 +46,12 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<BuyerDashboard />} />
+            <Route path="/seller" element={<SellerDashboard />} />
+            <Route path="/vendor/:id" element={<VendorProfile />} />
             <Route path="/categories" element={<SectionLayout><Categories /></SectionLayout>} />
             <Route path="/how-it-works" element={<SectionLayout><HowItWorks /></SectionLayout>} />
             <Route path="/join" element={<SectionLayout><CTA /></SectionLayout>} />
-            <Route path="/auth/select" element={<AuthSelect />} />
             <Route path="/auth" element={<Auth />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
