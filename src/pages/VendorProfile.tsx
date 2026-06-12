@@ -1,16 +1,32 @@
 import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { MapPin, MessageCircle } from "lucide-react";
-import { useVendor, useVendorProducts } from "@/lib/catalog";
+import { MapPin, MessageCircle, Phone, Mail, Star } from "lucide-react";
+import { useVendor, useVendorProducts, useMyVendorRating, useRateVendor } from "@/lib/catalog";
 import { useCurrentUser } from "@/lib/auth";
 import { ProductCard, Stars } from "@/components/catalog-cards";
+import { LoadingOverlay } from "@/components/LoadingOverlay";
+
+function RateStars({ value, onPick }: { value: number; onPick: (n: number) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button key={n} type="button" onClick={() => onPick(n)} aria-label={`Rate ${n} star${n > 1 ? "s" : ""}`}>
+          <Star className={`h-5 w-5 ${n <= value ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40 hover:text-amber-400"}`} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const contactBtn =
+  "inline-flex items-center gap-2 rounded-xl border-2 border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary/50";
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background font-body text-foreground">
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link to="/" className="font-display text-2xl font-black tracking-tight text-white">
+          <Link to="/" className="font-display text-2xl font-black tracking-tight text-foreground">
             ven<span className="text-primary">gryd</span>
           </Link>
           <Link to="/dashboard" className="text-sm font-semibold text-primary hover:underline">
@@ -27,8 +43,10 @@ const VendorProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: user } = useCurrentUser();
-  const { data: vendor, isLoading } = useVendor(id);
+  const { data: vendor, isFetching } = useVendor(id);
   const { data: products } = useVendorProducts(vendor?.sellerId);
+  const { data: myRating } = useMyVendorRating(id);
+  const rate = useRateVendor(id);
   const [note, setNote] = useState("");
 
   const onMessage = () => {
@@ -39,23 +57,19 @@ const VendorProfile = () => {
     setNote("Messaging is coming soon — you'll be able to chat with this vendor right here.");
   };
 
-  if (isLoading) {
-    return (
-      <Shell>
-        <p className="py-20 text-center text-sm text-muted-foreground">Loading…</p>
-      </Shell>
-    );
-  }
-
   if (!vendor) {
     return (
       <Shell>
-        <div className="py-20 text-center">
-          <p className="text-sm text-muted-foreground">Vendor not found.</p>
-          <Link to="/dashboard" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
-            Back to marketplace
-          </Link>
-        </div>
+        {isFetching ? (
+          <LoadingOverlay />
+        ) : (
+          <div className="py-20 text-center">
+            <p className="text-sm text-muted-foreground">Vendor not found.</p>
+            <Link to="/dashboard" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
+              Back to marketplace
+            </Link>
+          </div>
+        )}
       </Shell>
     );
   }
@@ -85,7 +99,22 @@ const VendorProfile = () => {
           ) : null}
           <div className="mt-2 flex items-center gap-2">
             <Stars rating={vendor.rating} />
-            <span className="text-xs text-muted-foreground">({vendor.reviews} reviews)</span>
+            <span className="text-xs text-muted-foreground">
+              {vendor.rating ? vendor.rating.toFixed(1) : "—"} · {vendor.reviews} reviews
+            </span>
+          </div>
+          <div className="mt-3">
+            <p className="mb-1 text-xs text-muted-foreground">{myRating ? "Your rating" : "Rate this vendor"}</p>
+            <RateStars
+              value={myRating ?? 0}
+              onPick={(n) => {
+                if (!user) {
+                  navigate("/auth");
+                  return;
+                }
+                rate.mutate(n);
+              }}
+            />
           </div>
         </div>
 
@@ -100,6 +129,32 @@ const VendorProfile = () => {
 
       {note ? (
         <p className="mt-4 rounded-xl border-2 border-border bg-card p-4 text-sm text-accent">{note}</p>
+      ) : null}
+
+      {/* Contact details */}
+      {vendor.phone || vendor.whatsapp || vendor.email ? (
+        <section className="mt-6 flex flex-wrap gap-3">
+          {vendor.phone ? (
+            <a href={`tel:${vendor.phone}`} className={contactBtn}>
+              <Phone className="h-4 w-4 text-primary" /> {vendor.phone}
+            </a>
+          ) : null}
+          {vendor.whatsapp ? (
+            <a
+              href={`https://wa.me/${vendor.whatsapp.replace(/[^\d]/g, "")}`}
+              target="_blank"
+              rel="noreferrer"
+              className={contactBtn}
+            >
+              <MessageCircle className="h-4 w-4 text-primary" /> WhatsApp
+            </a>
+          ) : null}
+          {vendor.email ? (
+            <a href={`mailto:${vendor.email}`} className={contactBtn}>
+              <Mail className="h-4 w-4 text-primary" /> Email
+            </a>
+          ) : null}
+        </section>
       ) : null}
 
       {/* Services */}

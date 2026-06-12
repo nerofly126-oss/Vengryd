@@ -10,6 +10,7 @@ export type SellerProduct = {
   id?: string;
   name: string;
   categoryId: string;
+  description?: string | null;
   price: number;
   oldPrice?: number | null;
   discount?: number | null;
@@ -26,6 +27,9 @@ export type SellerVendor = {
   area: string;
   services: string[];
   imageUrl?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  email?: string | null;
 };
 
 export type ProductRow = {
@@ -33,6 +37,7 @@ export type ProductRow = {
   name: string;
   category_id: string | null;
   image_url: string | null;
+  description: string | null;
   price: number | string;
   old_price: number | string | null;
   discount: number | null;
@@ -48,6 +53,9 @@ export type VendorRow = {
   image_url: string | null;
   area: string | null;
   services: string[] | null;
+  phone: string | null;
+  whatsapp: string | null;
+  contact_email: string | null;
 };
 
 async function requireUser(): Promise<User> {
@@ -90,7 +98,7 @@ export function useMyProducts() {
       const user = await requireUser();
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, category_id, image_url, price, old_price, discount, stock, is_featured, is_hot_deal")
+        .select("id, name, category_id, image_url, description, price, old_price, discount, stock, is_featured, is_hot_deal")
         .eq("seller_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -110,6 +118,7 @@ export function useSaveProduct() {
         seller_id: user.id,
         name: input.name,
         category_id: input.categoryId,
+        description: input.description ?? null,
         price: input.price,
         old_price: input.oldPrice ?? null,
         discount: input.discount ?? null,
@@ -155,7 +164,7 @@ export function useMyVendor() {
       const user = await requireUser();
       const { data, error } = await supabase
         .from("vendors")
-        .select("id, name, category_id, image_url, area, services")
+        .select("id, name, category_id, image_url, area, services, phone, whatsapp, contact_email")
         .eq("seller_id", user.id)
         .maybeSingle();
       if (error) throw error;
@@ -178,6 +187,9 @@ export function useSaveVendor() {
         area: input.area,
         services: input.services,
         image_url: input.imageUrl ?? null,
+        phone: input.phone ?? null,
+        whatsapp: input.whatsapp ?? null,
+        contact_email: input.email ?? null,
       };
 
       // One vendor profile per seller: update if it exists, otherwise insert.

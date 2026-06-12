@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Laptop,
   Tv,
@@ -59,9 +59,11 @@ export type Product = {
   id: string;
   name: string;
   categoryId?: string;
+  sellerId?: string;
   icon: LucideIcon;
   tint: string;
   imageUrl?: string;
+  description?: string;
   price: number;
   oldPrice?: number;
   discount?: number;
@@ -85,6 +87,9 @@ export type Vendor = {
   rating: number;
   reviews: number;
   services: string[];
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
 };
 
 type CategoryRow = { id: string; label: string; icon: string | null; kind: string | null; product_count: number };
@@ -92,9 +97,11 @@ type ProductRow = {
   id: string;
   name: string;
   category_id: string | null;
+  seller_id: string | null;
   icon: string | null;
   tint: string | null;
   image_url: string | null;
+  description: string | null;
   price: number | string;
   old_price: number | string | null;
   discount: number | null;
@@ -117,6 +124,9 @@ type VendorRow = {
   rating: number | string;
   reviews: number;
   services: string[] | null;
+  phone: string | null;
+  whatsapp: string | null;
+  contact_email: string | null;
 };
 
 function mapCategory(row: CategoryRow): Category {
@@ -134,9 +144,11 @@ function mapProduct(row: ProductRow): Product {
     id: row.id,
     name: row.name,
     categoryId: row.category_id ?? undefined,
+    sellerId: row.seller_id ?? undefined,
     icon: iconFor(row.icon),
     tint: row.tint ?? "from-slate-700 to-slate-900",
     imageUrl: row.image_url ?? undefined,
+    description: row.description ?? undefined,
     price: Number(row.price),
     oldPrice: row.old_price != null ? Number(row.old_price) : undefined,
     discount: row.discount ?? undefined,
@@ -162,6 +174,9 @@ function mapVendor(row: VendorRow): Vendor {
     rating: Number(row.rating),
     reviews: row.reviews,
     services: row.services ?? [],
+    phone: row.phone ?? undefined,
+    whatsapp: row.whatsapp ?? undefined,
+    email: row.contact_email ?? undefined,
   };
 }
 
@@ -184,7 +199,7 @@ async function fetchProducts(): Promise<Product[]> {
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id, name, category_id, icon, tint, image_url, price, old_price, discount, rating, reviews, sold, stock, is_featured, is_hot_deal",
+      "id, name, category_id, seller_id, icon, tint, image_url, description, price, old_price, discount, rating, reviews, sold, stock, is_featured, is_hot_deal",
     )
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -196,7 +211,7 @@ async function fetchVendors(): Promise<Vendor[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("vendors")
-    .select("id, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services")
+    .select("id, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return ((data ?? []) as VendorRow[]).map(mapVendor);
@@ -211,7 +226,7 @@ export function useVendor(id?: string) {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase
         .from("vendors")
-        .select("id, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services")
+        .select("id, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -231,7 +246,7 @@ export function useVendorProducts(sellerId?: string | null) {
       const { data, error } = await supabase
         .from("products")
         .select(
-          "id, name, category_id, icon, tint, image_url, price, old_price, discount, rating, reviews, sold, stock, is_featured, is_hot_deal",
+          "id, name, category_id, seller_id, icon, tint, image_url, description, price, old_price, discount, rating, reviews, sold, stock, is_featured, is_hot_deal",
         )
         .eq("seller_id", sellerId)
         .order("created_at", { ascending: false });
@@ -252,4 +267,72 @@ export function useProducts() {
 
 export function useVendors() {
   return useQuery({ queryKey: ["catalog-vendors"], queryFn: fetchVendors, initialData: [] });
+}
+
+/* ---------------- Vendor ratings ---------------- */
+
+/** The signed-in buyer's own rating for a vendor (null if none / signed out). */
+export function useMyVendorRating(vendorId?: string) {
+  return useQuery({
+    queryKey: ["vendor-rating-mine", vendorId],
+    enabled: !!vendorId,
+    queryFn: async (): Promise<number | null> => {
+      if (!isSupabaseConfigured() || !vendorId) return null;
+      const supabase = getSupabaseClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("vendor_ratings")
+        .select("rating")
+        .eq("vendor_id", vendorId)
+        .eq("buyer_id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.rating as number | undefined) ?? null;
+    },
+    initialData: null,
+  });
+}
+
+export function useRateVendor(vendorId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (rating: number) => {
+      const supabase = getSupabaseClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sign in to rate this vendor.");
+      if (!vendorId) throw new Error("Missing vendor.");
+
+      // one rating per buyer per vendor: update if it exists, else insert
+      const { data: existing, error: findError } = await supabase
+        .from("vendor_ratings")
+        .select("id")
+        .eq("vendor_id", vendorId)
+        .eq("buyer_id", user.id)
+        .maybeSingle();
+      if (findError) throw findError;
+
+      if (existing) {
+        const { error } = await supabase
+          .from("vendor_ratings")
+          .update({ rating })
+          .eq("id", (existing as { id: string }).id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("vendor_ratings")
+          .insert({ vendor_id: vendorId, buyer_id: user.id, rating });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["vendor", vendorId] });
+      void qc.invalidateQueries({ queryKey: ["vendor-rating-mine", vendorId] });
+      void qc.invalidateQueries({ queryKey: ["catalog-vendors"] });
+    },
+  });
 }

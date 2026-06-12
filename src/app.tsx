@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/soner";
@@ -14,6 +15,7 @@ import Index from "./pages/Index.tsx";
 import BuyerDashboard from "./pages/BuyerDashboard.tsx";
 import SellerDashboard from "./pages/SellerDashboard.tsx";
 import VendorProfile from "./pages/VendorProfile.tsx";
+import Settings from "./pages/Settings.tsx";
 import Auth from "./pages/Auth.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -34,13 +36,13 @@ const App = () => {
     };
   }, []);
 
-  if (isBooting) {
-    return <LoadingScreen />;
-  }
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+      {isBooting ? (
+        <LoadingScreen />
+      ) : (
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -49,6 +51,7 @@ const App = () => {
             <Route path="/dashboard" element={<BuyerDashboard />} />
             <Route path="/seller" element={<SellerDashboard />} />
             <Route path="/vendor/:id" element={<VendorProfile />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/categories" element={<SectionLayout><Categories /></SectionLayout>} />
             <Route path="/how-it-works" element={<SectionLayout><HowItWorks /></SectionLayout>} />
             <Route path="/join" element={<SectionLayout><CTA /></SectionLayout>} />
@@ -60,6 +63,8 @@ const App = () => {
         <Analytics />
       </TooltipProvider>
     </QueryClientProvider>
+      )}
+    </ThemeProvider>
   );
 };
 

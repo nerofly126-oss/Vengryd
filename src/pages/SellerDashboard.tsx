@@ -14,12 +14,13 @@ import {
 } from "@/lib/seller";
 
 const inputClass =
-  "w-full rounded-xl border-2 border-border bg-secondary/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none";
+  "w-full rounded-none border-2 border-border bg-secondary/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none";
 
 const emptyProduct = {
   id: undefined as string | undefined,
   name: "",
   categoryId: "",
+  description: "",
   price: "",
   oldPrice: "",
   stock: "",
@@ -43,7 +44,7 @@ function ImageUploader({
   const shown = preview ?? imageUrl ?? null;
   return (
     <div className="flex items-center gap-4">
-      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-border bg-secondary/40">
+      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-none border-2 border-border bg-secondary/40">
         {shown ? (
           <img src={shown} alt="" className="h-full w-full object-cover" />
         ) : (
@@ -53,7 +54,7 @@ function ImageUploader({
       <button
         type="button"
         onClick={() => ref.current?.click()}
-        className="rounded-lg border-2 border-border px-4 py-2 text-sm font-semibold text-foreground hover:border-primary/50"
+        className="rounded-none border-2 border-border px-4 py-2 text-sm font-semibold text-foreground hover:border-primary/50"
       >
         {label}
       </button>
@@ -92,7 +93,7 @@ const SellerDashboard = () => {
         </p>
         <Link
           to="/auth"
-          className="rounded-xl bg-primary px-6 py-3 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90"
+          className="rounded-none bg-primary px-6 py-3 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90"
         >
           Sign in / Join
         </Link>
@@ -107,7 +108,7 @@ const SellerDashboard = () => {
     <div className="min-h-screen bg-background font-body text-foreground">
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link to="/" className="font-display text-2xl font-black tracking-tight text-white">
+          <Link to="/" className="font-display text-2xl font-black tracking-tight text-foreground">
             ven<span className="text-primary">gryd</span>{" "}
             <span className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Seller</span>
           </Link>
@@ -173,6 +174,7 @@ function ProductsTab({
       id: p.id,
       name: p.name,
       categoryId: p.category_id ?? "",
+      description: p.description ?? "",
       price: String(p.price),
       oldPrice: p.old_price != null ? String(p.old_price) : "",
       stock: p.stock != null ? String(p.stock) : "",
@@ -199,6 +201,7 @@ function ProductsTab({
         id: form.id,
         name: form.name.trim(),
         categoryId: form.categoryId,
+        description: form.description.trim() || null,
         price: Number(form.price),
         oldPrice: form.oldPrice ? Number(form.oldPrice) : null,
         discount: form.discount ? Number(form.discount) : null,
@@ -215,7 +218,7 @@ function ProductsTab({
 
   if (!vendor?.area) {
     return (
-      <div className="rounded-2xl border-2 border-dashed border-border bg-card p-10 text-center">
+      <div className="rounded-none border-2 border-dashed border-border bg-card p-10 text-center">
         <MapPin className="mx-auto h-8 w-8 text-primary" />
         <h2 className="mt-3 font-display text-lg font-bold">Set your location first</h2>
         <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
@@ -224,7 +227,7 @@ function ProductsTab({
         <button
           type="button"
           onClick={onRequireLocation}
-          className="mt-5 rounded-xl bg-primary px-6 py-2.5 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90"
+          className="mt-5 rounded-none bg-primary px-6 py-2.5 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90"
         >
           Go to profile
         </button>
@@ -234,10 +237,16 @@ function ProductsTab({
 
   return (
     <div className="space-y-8">
-      <form onSubmit={submit} className="space-y-5 rounded-2xl border-2 border-border bg-card p-6">
+      <form onSubmit={submit} className="space-y-5 rounded-none border-2 border-border bg-card p-6">
         <h2 className="font-display text-lg font-bold">{form.id ? "Edit product" : "Add a product"}</h2>
         <ImageUploader imageUrl={form.imageUrl} onFile={setFile} label="Upload image" />
         <input className={inputClass} placeholder="Product name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        <textarea
+          className={`${inputClass} min-h-[5rem] resize-y`}
+          placeholder="Description (optional)"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+        />
         <div className="grid gap-4 sm:grid-cols-2">
           <select className={inputClass} value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
             <option value="">Select category</option>
@@ -245,7 +254,7 @@ function ProductsTab({
               <option key={c.id} value={c.id}>{c.label}</option>
             ))}
           </select>
-          <input className={inputClass} type="number" min="0" step="0.01" placeholder="Price ($)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+          <input className={inputClass} type="number" min="0" step="0.01" placeholder="Price (₦)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
           <input className={inputClass} type="number" min="0" step="0.01" placeholder="Old price (optional)" value={form.oldPrice} onChange={(e) => setForm({ ...form, oldPrice: e.target.value })} />
           <input className={inputClass} type="number" min="0" placeholder="Stock" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
           <input className={inputClass} type="number" min="0" max="100" placeholder="Discount %" value={form.discount} onChange={(e) => setForm({ ...form, discount: e.target.value })} />
@@ -262,11 +271,11 @@ function ProductsTab({
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         <div className="flex gap-3">
-          <button type="submit" disabled={save.isPending} className="rounded-xl bg-primary px-6 py-2.5 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+          <button type="submit" disabled={save.isPending} className="rounded-none bg-primary px-6 py-2.5 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
             {save.isPending ? "Saving…" : form.id ? "Update product" : "Add product"}
           </button>
           {form.id ? (
-            <button type="button" onClick={reset} className="rounded-xl border-2 border-border px-6 py-2.5 text-sm font-semibold hover:border-primary/50">
+            <button type="button" onClick={reset} className="rounded-none border-2 border-border px-6 py-2.5 text-sm font-semibold hover:border-primary/50">
               Cancel
             </button>
           ) : null}
@@ -276,24 +285,24 @@ function ProductsTab({
       <div>
         <h2 className="mb-4 font-display text-lg font-bold">Your products ({products.length})</h2>
         {products.length === 0 ? (
-          <p className="rounded-2xl border-2 border-dashed border-border py-12 text-center text-sm text-muted-foreground">
+          <p className="rounded-none border-2 border-dashed border-border py-12 text-center text-sm text-muted-foreground">
             No products yet. Add your first one above.
           </p>
         ) : (
           <div className="grid gap-3">
             {products.map((p) => (
-              <div key={p.id} className="flex items-center gap-4 rounded-xl border-2 border-border bg-card p-3">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary/40">
+              <div key={p.id} className="flex items-center gap-4 rounded-none border-2 border-border bg-card p-3">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-none bg-secondary/40">
                   {p.image_url ? <img src={p.image_url} alt="" className="h-full w-full object-cover" /> : <Package className="h-5 w-5 text-muted-foreground" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-foreground">{p.name}</p>
-                  <p className="text-xs text-primary">${Number(p.price).toFixed(2)}</p>
+                  <p className="text-xs text-primary">₦{Number(p.price).toLocaleString()}</p>
                 </div>
-                <button type="button" onClick={() => editRow(p)} className="rounded-lg p-2 text-muted-foreground hover:text-primary" aria-label="Edit">
+                <button type="button" onClick={() => editRow(p)} className="rounded-none p-2 text-muted-foreground hover:text-primary" aria-label="Edit">
                   <Pencil className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => del.mutate(p.id)} className="rounded-lg p-2 text-muted-foreground hover:text-destructive" aria-label="Delete">
+                <button type="button" onClick={() => del.mutate(p.id)} className="rounded-none p-2 text-muted-foreground hover:text-destructive" aria-label="Delete">
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
@@ -311,7 +320,17 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
   const { data: vendor } = useMyVendor();
   const save = useSaveVendor();
 
-  const [form, setForm] = useState({ id: undefined as string | undefined, name: "", categoryId: "", area: "", services: "", imageUrl: "" as string | null | undefined });
+  const [form, setForm] = useState({
+    id: undefined as string | undefined,
+    name: "",
+    categoryId: "",
+    area: "",
+    services: "",
+    phone: "",
+    whatsapp: "",
+    email: "",
+    imageUrl: "" as string | null | undefined,
+  });
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -324,6 +343,9 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
         categoryId: vendor.category_id ?? "",
         area: vendor.area ?? "",
         services: (vendor.services ?? []).join(", "),
+        phone: vendor.phone ?? "",
+        whatsapp: vendor.whatsapp ?? "",
+        email: vendor.contact_email ?? "",
         imageUrl: vendor.image_url,
       });
     }
@@ -346,6 +368,9 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
         categoryId: form.categoryId,
         area: form.area.trim(),
         services: form.services.split(",").map((s) => s.trim()).filter(Boolean),
+        phone: form.phone.trim() || null,
+        whatsapp: form.whatsapp.trim() || null,
+        email: form.email.trim() || null,
         imageUrl,
       });
       setSaved(true);
@@ -355,7 +380,7 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
   };
 
   return (
-    <form onSubmit={submit} className="space-y-5 rounded-2xl border-2 border-border bg-card p-6">
+    <form onSubmit={submit} className="space-y-5 rounded-none border-2 border-border bg-card p-6">
       <h2 className="font-display text-lg font-bold">Vendor profile</h2>
       <p className="text-sm text-muted-foreground">
         This is your public storefront — it shows to buyers when they browse your service category.
@@ -372,9 +397,17 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
         <input className={inputClass} placeholder="Area / location — required (e.g. Yaba, Lagos)" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} />
       </div>
       <input className={inputClass} placeholder="Services (comma separated, e.g. Haircut, Beard trim)" value={form.services} onChange={(e) => setForm({ ...form, services: e.target.value })} />
+
+      <p className="pt-1 text-sm font-semibold text-foreground">Contact details</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <input className={inputClass} type="tel" placeholder="Phone (e.g. 0801 234 5678)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+        <input className={inputClass} type="tel" placeholder="WhatsApp number" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} />
+      </div>
+      <input className={inputClass} type="email" placeholder="Contact email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {saved ? <p className="text-sm text-accent">Profile saved — buyers can now find you.</p> : null}
-      <button type="submit" disabled={save.isPending} className="rounded-xl bg-primary px-6 py-2.5 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+      <button type="submit" disabled={save.isPending} className="rounded-none bg-primary px-6 py-2.5 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
         {save.isPending ? "Saving…" : "Save profile"}
       </button>
     </form>

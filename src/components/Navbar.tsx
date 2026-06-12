@@ -58,7 +58,7 @@ const Navbar = () => {
       <div className="mx-auto w-full md:max-w-6xl">
         <div className="navbar-shell">
           <div className="container flex h-16 items-center justify-between">
-            <Link to="/" className="font-display text-xl font-bold tracking-wide text-white">
+            <Link to="/" className="font-display text-xl font-bold tracking-wide text-foreground">
               ven<span className="text-primary">gryd</span>
             </Link>
 

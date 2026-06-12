@@ -15,9 +15,9 @@ const Hero = () => {
       <div className="container relative z-10 pb-20 pt-32 sm:pb-28">
         <motion.span
           className="eyebrow-kicker eyebrow-kicker-light mb-5"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7 }}
         >
           The community marketplace
         </motion.span>

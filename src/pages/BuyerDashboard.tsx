@@ -1,11 +1,121 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Search, Heart, ShoppingCart, MapPin, X, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Heart, ShoppingCart, MapPin, X, LogOut, Trash2 } from "lucide-react";
 import { useCategories, useProducts, useVendors } from "@/lib/catalog";
 import { ProductCard, VendorCard } from "@/components/catalog-cards";
 import { useCurrentUser, useSignOut, displayName, initials } from "@/lib/auth";
 import { useBuyerArea, areaMatches } from "@/lib/location";
+import { useCart, useWishlist, cartActions, wishlistActions, type StoreItem } from "@/lib/store";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
+
+function CartDrawer({
+  open,
+  onClose,
+}: {
+  open: "cart" | "wishlist" | null;
+  onClose: () => void;
+}) {
+  const navigate = useNavigate();
+  const { data: user } = useCurrentUser();
+  const cart = useCart();
+  const wishlist = useWishlist();
+  const items = open === "cart" ? cart : wishlist;
+  const subtotal = cart.reduce((sum, i) => sum + i.price, 0);
+
+  return (
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          className="fixed inset-0 z-[70]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+          <motion.aside
+            className="absolute right-0 top-0 flex h-full w-full max-w-sm flex-col border-l-2 border-border bg-card"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "tween", duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="flex items-center justify-between border-b border-border p-5">
+              <h2 className="font-display text-lg font-bold uppercase tracking-tight text-foreground">
+                {open === "cart" ? `Cart (${cart.length})` : `Favourites (${wishlist.length})`}
+              </h2>
+              <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="Close">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5">
+              {items.length === 0 ? (
+                <p className="py-12 text-center text-sm text-muted-foreground">
+                  {open === "cart" ? "Your cart is empty." : "No favourites yet."}
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {items.map((it: StoreItem) => (
+                    <li key={it.id} className="flex items-center gap-3 border-2 border-border bg-background/40 p-2">
+                      <div className="h-14 w-14 shrink-0 overflow-hidden bg-secondary">
+                        {it.imageUrl ? (
+                          <img src={it.imageUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className={`h-full w-full bg-gradient-to-br ${it.tint}`} />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">{it.name}</p>
+                        <p className="text-xs font-bold text-primary">₦{it.price.toLocaleString()}</p>
+                      </div>
+                      {open === "wishlist" ? (
+                        <button
+                          type="button"
+                          onClick={() => cartActions.add(it)}
+                          className="bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                        >
+                          Add
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => (open === "cart" ? cartActions.remove(it.id) : wishlistActions.remove(it.id))}
+                        className="p-2 text-muted-foreground hover:text-destructive"
+                        aria-label="Remove"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {open === "cart" && cart.length > 0 ? (
+              <div className="border-t border-border p-5">
+                <div className="mb-4 flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-display text-lg font-bold text-foreground">₦{subtotal.toLocaleString()}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (!user) navigate("/auth");
+                  }}
+                  className="w-full bg-primary py-3 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90"
+                >
+                  {user ? "Checkout (coming soon)" : "Sign in to checkout"}
+                </button>
+              </div>
+            ) : null}
+          </motion.aside>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
 
 const BuyerDashboard = () => {
   const [query, setQuery] = useState("");
@@ -19,6 +129,10 @@ const BuyerDashboard = () => {
   const [area, setArea] = useBuyerArea();
   const [locOpen, setLocOpen] = useState(false);
   const [areaInput, setAreaInput] = useState(area);
+
+  const cart = useCart();
+  const wishlist = useWishlist();
+  const [drawer, setDrawer] = useState<"cart" | "wishlist" | null>(null);
 
   const { data: categories, isFetching: catFetching } = useCategories();
   const { data: products, isLoading: productsLoading, isFetching: prodFetching } = useProducts();
@@ -71,11 +185,12 @@ const BuyerDashboard = () => {
   return (
     <div className="min-h-screen bg-background font-body text-foreground">
       {showLoader ? <LoadingOverlay /> : null}
+      <CartDrawer open={drawer} onClose={() => setDrawer(null)} />
 
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4 sm:px-6">
-          <Link to="/" className="font-display text-2xl font-black tracking-tight text-white">
+          <Link to="/" className="font-display text-2xl font-black tracking-tight text-foreground">
             ven<span className="text-primary">gryd</span>
           </Link>
 
@@ -92,13 +207,13 @@ const BuyerDashboard = () => {
               {area ? <span className="max-w-[10rem] truncate text-foreground">{area}</span> : "Set your area"}
             </button>
             {locOpen ? (
-              <div className="absolute left-0 z-50 mt-2 w-64 rounded-xl border-2 border-border bg-card p-3 shadow-[var(--shadow-card)]">
+              <div className="absolute left-0 z-50 mt-2 w-64 rounded-none border-2 border-border bg-card p-3 shadow-[var(--shadow-card)]">
                 <p className="mb-2 text-xs text-muted-foreground">Show vendors in your area</p>
                 <input
                   value={areaInput}
                   onChange={(e) => setAreaInput(e.target.value)}
                   placeholder="e.g. Yaba, Lagos"
-                  className="w-full rounded-lg border-2 border-border bg-secondary/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                  className="w-full rounded-none border-2 border-border bg-secondary/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                 />
                 <div className="mt-2 flex gap-2">
                   <button
@@ -107,7 +222,7 @@ const BuyerDashboard = () => {
                       setArea(areaInput);
                       setLocOpen(false);
                     }}
-                    className="flex-1 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                    className="flex-1 rounded-none bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
                   >
                     Save
                   </button>
@@ -119,7 +234,7 @@ const BuyerDashboard = () => {
                         setAreaInput("");
                         setLocOpen(false);
                       }}
-                      className="rounded-lg border-2 border-border px-3 text-sm hover:border-primary/50"
+                      className="rounded-none border-2 border-border px-3 text-sm hover:border-primary/50"
                     >
                       Clear
                     </button>
@@ -133,7 +248,7 @@ const BuyerDashboard = () => {
             onSubmit={(e) => e.preventDefault()}
             className="hidden flex-1 items-center md:flex"
           >
-            <div className="flex w-full items-center rounded-lg border-2 border-border bg-secondary/40 focus-within:border-primary">
+            <div className="flex w-full items-center rounded-none border-2 border-border bg-secondary/40 focus-within:border-primary">
               <Search className="ml-3 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
@@ -149,7 +264,7 @@ const BuyerDashboard = () => {
               ) : null}
               <button
                 type="submit"
-                className="m-1 rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                className="m-1 rounded-none bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Search
               </button>
@@ -157,13 +272,21 @@ const BuyerDashboard = () => {
           </form>
 
           <div className="ml-auto flex items-center gap-4 text-muted-foreground">
-            <button type="button" className="relative hover:text-foreground" aria-label="Wishlist">
+            <button type="button" onClick={() => setDrawer("wishlist")} className="relative hover:text-foreground" aria-label="Favourites">
               <Heart className="h-5 w-5" />
-              <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">0</span>
+              {wishlist.length > 0 ? (
+                <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {wishlist.length}
+                </span>
+              ) : null}
             </button>
-            <button type="button" className="relative hover:text-foreground" aria-label="Cart">
+            <button type="button" onClick={() => setDrawer("cart")} className="relative hover:text-foreground" aria-label="Cart">
               <ShoppingCart className="h-5 w-5" />
-              <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">0</span>
+              {cart.length > 0 ? (
+                <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {cart.length}
+                </span>
+              ) : null}
             </button>
 
             {user ? (
@@ -175,9 +298,12 @@ const BuyerDashboard = () => {
                   <span className="hidden max-w-[8rem] truncate text-sm text-foreground lg:inline">{name}</span>
                 </button>
                 {menuOpen ? (
-                  <div className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-xl border-2 border-border bg-card p-1 shadow-[var(--shadow-card)]">
-                    <Link to="/seller" onClick={() => setMenuOpen(false)} className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                  <div className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-none border-2 border-border bg-card p-1 shadow-[var(--shadow-card)]">
+                    <Link to="/seller" onClick={() => setMenuOpen(false)} className="block rounded-none px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       Sell on vengryd
+                    </Link>
+                    <Link to="/settings" onClick={() => setMenuOpen(false)} className="block rounded-none px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      Settings
                     </Link>
                     <button
                       type="button"
@@ -185,7 +311,7 @@ const BuyerDashboard = () => {
                         setMenuOpen(false);
                         signOut.mutate();
                       }}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-destructive hover:bg-secondary"
+                      className="flex w-full items-center gap-2 rounded-none px-3 py-2 text-left text-sm text-destructive hover:bg-secondary"
                     >
                       <LogOut className="h-4 w-4" /> Sign out
                     </button>
@@ -193,7 +319,7 @@ const BuyerDashboard = () => {
                 ) : null}
               </div>
             ) : (
-              <Link to="/auth" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+              <Link to="/auth" className="rounded-none bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
                 Sign in
               </Link>
             )}
@@ -202,7 +328,7 @@ const BuyerDashboard = () => {
 
         {/* Mobile search + location */}
         <div className="px-4 pb-3 md:hidden">
-          <div className="flex items-center rounded-lg border-2 border-border bg-secondary/40 focus-within:border-primary">
+          <div className="flex items-center rounded-none border-2 border-border bg-secondary/40 focus-within:border-primary">
             <Search className="ml-3 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
@@ -224,12 +350,12 @@ const BuyerDashboard = () => {
             {area ? <span className="text-foreground">{area}</span> : "Set your area"}
           </button>
           {locOpen ? (
-            <div className="mt-2 rounded-xl border-2 border-border bg-card p-3">
+            <div className="mt-2 rounded-none border-2 border-border bg-card p-3">
               <input
                 value={areaInput}
                 onChange={(e) => setAreaInput(e.target.value)}
                 placeholder="e.g. Yaba, Lagos"
-                className="w-full rounded-lg border-2 border-border bg-secondary/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                className="w-full rounded-none border-2 border-border bg-secondary/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
               <div className="mt-2 flex gap-2">
                 <button
@@ -238,7 +364,7 @@ const BuyerDashboard = () => {
                     setArea(areaInput);
                     setLocOpen(false);
                   }}
-                  className="flex-1 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground"
+                  className="flex-1 rounded-none bg-primary py-2 text-sm font-semibold text-primary-foreground"
                 >
                   Save
                 </button>
@@ -250,7 +376,7 @@ const BuyerDashboard = () => {
                       setAreaInput("");
                       setLocOpen(false);
                     }}
-                    className="rounded-lg border-2 border-border px-3 text-sm"
+                    className="rounded-none border-2 border-border px-3 text-sm"
                   >
                     Clear
                   </button>
@@ -262,20 +388,24 @@ const BuyerDashboard = () => {
       </header>
 
       <main className="mx-auto max-w-7xl space-y-10 px-4 py-8 sm:px-6">
-        {/* Hero banner (home only) */}
+        {/* Hero heading (home only) — sits directly on the page */}
         {!isBrowsing ? (
-          <section className="relative flex flex-col justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-accent p-8 text-primary-foreground sm:p-10">
-            <span className="text-xs font-bold uppercase tracking-widest text-primary-foreground/80">Your community</span>
-            <h2 className="mt-2 font-display text-4xl font-black uppercase leading-tight tracking-tighter sm:text-5xl">
-              Find local vendors &amp; products
+          <section>
+            <span className="eyebrow-kicker mb-4">Your community</span>
+            <h2 className="font-display text-3xl font-black uppercase leading-[0.9] tracking-tighter text-foreground sm:text-5xl">
+              Find local
+              <br />
+              vendors <span className="text-primary">&amp;</span> products
             </h2>
-            <p className="mt-2 text-sm text-primary-foreground/80">Barbers, stylists, gadgets and more — near you.</p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Barbers, stylists, gadgets and more — near you.
+            </p>
           </section>
         ) : null}
 
         {/* Category bar — click to filter */}
         {categories.length > 0 ? (
-          <section className="grid grid-cols-3 gap-4 rounded-2xl border-2 border-border bg-card p-6 sm:grid-cols-4 lg:grid-cols-8">
+          <section className="grid grid-cols-3 gap-4 rounded-none border-2 border-border bg-card p-6 sm:grid-cols-4 lg:grid-cols-8">
             {categories.map((cat) => {
               const active = cat.id === activeCategoryId;
               return (
@@ -362,10 +492,8 @@ const BuyerDashboard = () => {
               </section>
             ) : null}
 
-            <section className="rounded-2xl border-2 border-border bg-card p-6">
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="font-display text-xl font-bold text-foreground">Featured Products</h2>
-              </div>
+            <section>
+              <h2 className="mb-5 font-display text-xl font-bold text-foreground">View Marketplace</h2>
               {isLoading ? (
                 <p className="py-12 text-center text-sm text-muted-foreground">Loading products…</p>
               ) : featured.length > 0 ? (
@@ -380,7 +508,7 @@ const BuyerDashboard = () => {
             </section>
 
             {/* Vendors near you */}
-            <section className="rounded-2xl border-2 border-border bg-card p-6">
+            <section className="rounded-none border-2 border-border bg-card p-6">
               <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="font-display text-xl font-bold text-foreground">
                   Vendors {area ? `in ${area}` : "near you"}

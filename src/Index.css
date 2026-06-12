@@ -6,6 +6,61 @@
 
 @layer base {
   :root {
+    /* LIGHT theme */
+    --background: 44 44% 93%;
+    --foreground: 155 32% 13%;
+
+    --card: 42 52% 97%;
+    --card-foreground: 155 32% 13%;
+
+    --popover: 42 52% 97%;
+    --popover-foreground: 155 32% 13%;
+
+    --primary: 142 52% 38%;
+    --primary-foreground: 44 50% 96%;
+
+    --secondary: 140 24% 87%;
+    --secondary-foreground: 155 30% 18%;
+
+    --muted: 140 22% 89%;
+    --muted-foreground: 150 14% 36%;
+
+    --accent: 145 48% 36%;
+    --accent-foreground: 44 50% 96%;
+
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 44 50% 96%;
+
+    --border: 145 20% 80%;
+    --input: 145 20% 80%;
+    --ring: 142 52% 38%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 42 48% 95%;
+    --sidebar-foreground: 155 30% 18%;
+    --sidebar-primary: 142 52% 38%;
+    --sidebar-primary-foreground: 44 50% 96%;
+    --sidebar-accent: 140 22% 89%;
+    --sidebar-accent-foreground: 155 30% 18%;
+    --sidebar-border: 145 20% 80%;
+    --sidebar-ring: 142 52% 38%;
+
+    /* Custom tokens */
+    --gradient-earth: linear-gradient(135deg, hsl(142 52% 40%), hsl(155 45% 30%));
+    --gradient-forest: linear-gradient(135deg, hsl(145 48% 38%), hsl(155 40% 26%));
+    --gradient-dark: linear-gradient(180deg, hsl(44 44% 93%), hsl(40 42% 96%));
+    --gradient-card: linear-gradient(135deg, hsl(42 52% 97%), hsl(40 35% 93%));
+    --shadow-glow: 0 0 40px hsl(142 52% 40% / 0.18);
+    --shadow-card: 0 10px 30px hsl(150 30% 20% / 0.10);
+    --shadow-leaf: 0 0 30px hsl(145 48% 38% / 0.14);
+
+    --font-display: 'Urbanist', sans-serif;
+    --font-body: 'Urbanist', sans-serif;
+  }
+
+  .dark {
+    /* DARK theme (default) */
     --background: 150 6% 7%;
     --foreground: 41 30% 92%;
 
@@ -34,8 +89,6 @@
     --input: 150 6% 18%;
     --ring: 142 56% 45%;
 
-    --radius: 0.75rem;
-
     --sidebar-background: 150 5% 9%;
     --sidebar-foreground: 41 20% 88%;
     --sidebar-primary: 142 56% 45%;
@@ -45,7 +98,6 @@
     --sidebar-border: 150 6% 18%;
     --sidebar-ring: 142 56% 45%;
 
-    /* Custom tokens */
     --gradient-earth: linear-gradient(135deg, hsl(142 56% 45%), hsl(155 45% 32%));
     --gradient-forest: linear-gradient(135deg, hsl(145 46% 42%), hsl(155 38% 26%));
     --gradient-dark: linear-gradient(180deg, hsl(150 6% 7%), hsl(150 5% 11%));
@@ -53,9 +105,6 @@
     --shadow-glow: 0 0 40px hsl(142 56% 45% / 0.2);
     --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.3);
     --shadow-leaf: 0 0 30px hsl(145 46% 42% / 0.12);
-
-    --font-display: 'Urbanist', sans-serif;
-    --font-body: 'Urbanist', sans-serif;
   }
 }
 
@@ -491,4 +540,98 @@
 
 .animate-spin-slow {
   animation: spin-slow 32s linear infinite;
+}
+
+/* ---------------- Light-mode glass variants (default :root = light) ---------------- */
+html:not(.dark) .navbar-shell {
+  border-bottom: 1px solid hsl(150 28% 24% / 0.08);
+  background:
+    linear-gradient(180deg, hsl(150 28% 24% / 0.08), hsl(150 28% 24% / 0.02)),
+    hsl(42 52% 99% / 0.62);
+  box-shadow:
+    inset 0 1px 0 hsl(42 52% 99% / 0.5),
+    0 18px 40px hsl(150 30% 22% / 0.12);
+}
+
+@media (min-width: 768px) {
+  html:not(.dark) .navbar-shell {
+    border: 1px solid hsl(150 28% 24% / 0.1);
+  }
+}
+
+html:not(.dark) .navbar-shell::before {
+  background:
+    radial-gradient(circle at top left, hsl(150 28% 24% / 0.06), transparent 28%),
+    linear-gradient(120deg, transparent 20%, hsl(150 28% 24% / 0.04) 48%, transparent 70%);
+}
+
+html:not(.dark) .navbar-desktop-link:hover {
+  background: hsl(150 28% 24% / 0.06);
+}
+
+html:not(.dark) .navbar-mobile-panel {
+  border: 1px solid hsl(150 28% 24% / 0.1);
+  background:
+    linear-gradient(180deg, hsl(150 28% 24% / 0.06), hsl(150 28% 24% / 0.02)),
+    hsl(42 52% 99% / 0.78);
+  box-shadow: 0 20px 45px hsl(150 30% 22% / 0.14);
+}
+
+html:not(.dark) .navbar-mobile-link {
+  background: hsl(150 28% 24% / 0.03);
+}
+
+html:not(.dark) .liquid-button {
+  border: 1px solid hsl(150 28% 24% / 0.12);
+  background:
+    linear-gradient(180deg, hsl(150 28% 24% / 0.06), hsl(150 28% 24% / 0.02)),
+    hsl(42 52% 99% / 0.65);
+  box-shadow: inset 0 1px 0 hsl(42 52% 99% / 0.6);
+}
+
+html:not(.dark) .liquid-button::before {
+  opacity: 0.25;
+}
+
+html:not(.dark) .liquid-button:hover {
+  border-color: hsl(150 28% 24% / 0.18);
+  background:
+    linear-gradient(180deg, hsl(150 28% 24% / 0.1), hsl(150 28% 24% / 0.03)),
+    hsl(42 52% 99% / 0.82);
+}
+
+html:not(.dark) .liquid-button-primary {
+  color: hsl(44 50% 96%);
+  border-color: hsl(142 52% 28% / 0.4);
+  background: linear-gradient(180deg, hsl(142 52% 42%), hsl(142 54% 35%));
+  box-shadow: inset 0 1px 0 hsl(44 50% 96% / 0.22);
+}
+
+html:not(.dark) .liquid-button-primary:hover {
+  background: linear-gradient(180deg, hsl(142 54% 46%), hsl(142 56% 38%));
+}
+
+html:not(.dark) .liquid-button-soft {
+  background:
+    linear-gradient(180deg, hsl(150 28% 24% / 0.05), hsl(150 28% 24% / 0.02)),
+    hsl(42 52% 99% / 0.7);
+}
+
+html:not(.dark) .liquid-segmented {
+  border: 1px solid hsl(150 28% 24% / 0.1);
+  background:
+    linear-gradient(180deg, hsl(150 28% 24% / 0.05), hsl(150 28% 24% / 0.02)),
+    hsl(42 52% 99% / 0.6);
+}
+
+html:not(.dark) .liquid-segment:hover {
+  background: hsl(150 28% 24% / 0.05);
+}
+
+html:not(.dark) .liquid-segment[data-active="true"] {
+  border-color: hsl(150 28% 24% / 0.12);
+  background:
+    linear-gradient(180deg, hsl(142 52% 42% / 0.16), hsl(142 52% 42% / 0.06)),
+    hsl(42 52% 99% / 0.7);
+  color: hsl(var(--foreground));
 }

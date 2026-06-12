@@ -8,8 +8,8 @@ export const Component = ({ className }: LumaSpinProps) => {
       className={`relative w-[65px] aspect-square ${className ?? ""}`.trim()}
       aria-hidden="true"
     >
-      <span className="absolute rounded-[50px] animate-loaderAnim shadow-[inset_0_0_0_3px] shadow-white" />
-      <span className="absolute rounded-[50px] animate-loaderAnim animation-delay shadow-[inset_0_0_0_3px] shadow-white" />
+      <span className="absolute rounded-[50px] animate-loaderAnim shadow-[inset_0_0_0_3px] shadow-[hsl(var(--foreground))]" />
+      <span className="absolute rounded-[50px] animate-loaderAnim animation-delay shadow-[inset_0_0_0_3px] shadow-[hsl(var(--foreground))]" />
       <style>{`
         @keyframes loaderAnim {
           0% {
