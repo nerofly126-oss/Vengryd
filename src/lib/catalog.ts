@@ -92,6 +92,9 @@ export type Vendor = {
   phone?: string;
   whatsapp?: string;
   email?: string;
+  /** Flutterwave subaccount id — present once the vendor has set up payouts. */
+  subaccountId?: string;
+  acceptsPayments: boolean;
 };
 
 type CategoryRow = { id: string; label: string; icon: string | null; kind: string | null; product_count: number };
@@ -129,6 +132,7 @@ type VendorRow = {
   phone: string | null;
   whatsapp: string | null;
   contact_email: string | null;
+  flw_subaccount_id: string | null;
 };
 
 function mapCategory(row: CategoryRow): Category {
@@ -179,6 +183,8 @@ function mapVendor(row: VendorRow): Vendor {
     phone: row.phone ?? undefined,
     whatsapp: row.whatsapp ?? undefined,
     email: row.contact_email ?? undefined,
+    subaccountId: row.flw_subaccount_id ?? undefined,
+    acceptsPayments: !!row.flw_subaccount_id,
   };
 }
 
@@ -213,7 +219,7 @@ async function fetchVendors(): Promise<Vendor[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("vendors")
-    .select("id, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email")
+    .select("id, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email, flw_subaccount_id")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return ((data ?? []) as VendorRow[]).map(mapVendor);
@@ -228,7 +234,7 @@ export function useVendor(id?: string) {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase
         .from("vendors")
-        .select("id, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email")
+        .select("id, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email, flw_subaccount_id")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;

@@ -11,6 +11,7 @@ import { useBuyerArea, areaMatches } from "@/lib/location";
 import { toast } from "sonner";
 import { useCart, useWishlist, cartActions, wishlistActions, type StoreItem } from "@/lib/store";
 import { useCreateOrder } from "@/lib/orders";
+import { startPayment, verifyPayment, isPaymentsConfigured, type SplitSubaccount } from "@/lib/payments";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
 
 function CartDrawer({
@@ -22,25 +23,77 @@ function CartDrawer({
 }) {
   const navigate = useNavigate();
   const { data: user } = useCurrentUser();
+  const { data: products } = useProducts();
+  const { data: vendors } = useVendors();
   const cart = useCart();
   const wishlist = useWishlist();
   const createOrder = useCreateOrder();
+  const [paying, setPaying] = useState(false);
   const items = open === "cart" ? cart : wishlist;
   const subtotal = cart.reduce((sum, i) => sum + i.price, 0);
 
-  const checkout = () => {
+  // One subaccount per distinct vendor in the cart, split by each vendor's subtotal.
+  // Returns null if any item's vendor isn't payout-enabled (shouldn't happen — gated at add-to-cart).
+  const buildSplit = (): SplitSubaccount[] | null => {
+    const bySubaccount = new Map<string, number>();
+    for (const item of cart) {
+      const product = products.find((p) => p.id === item.id);
+      const vendor = product?.sellerId ? vendors.find((v) => v.sellerId === product.sellerId) : null;
+      const subId = vendor?.subaccountId;
+      if (!subId) return null;
+      bySubaccount.set(subId, (bySubaccount.get(subId) ?? 0) + item.price);
+    }
+    return Array.from(bySubaccount.entries()).map(([id, amount]) => ({
+      id,
+      transaction_split_ratio: amount,
+      transaction_charge_type: "percentage",
+      transaction_charge: 0.1,
+    }));
+  };
+
+  const checkout = async () => {
     if (!user) {
       onClose();
       navigate("/auth");
       return;
     }
-    createOrder.mutate(cart, {
-      onSuccess: () => {
-        toast.success("Order placed! The vendor has been notified.");
+    if (!isPaymentsConfigured()) {
+      toast.error("Payments aren't configured yet.");
+      return;
+    }
+    const subaccounts = buildSplit();
+    if (!subaccounts || subaccounts.length === 0) {
+      toast.error("Some items in your cart aren't available for purchase right now.");
+      return;
+    }
+    setPaying(true);
+    try {
+      const orderId = await createOrder.mutateAsync(cart);
+      const payment = await startPayment({
+        txRef: orderId,
+        amount: subtotal,
+        email: user.email ?? "",
+        name: displayName(user),
+        subaccounts,
+      });
+      if (!payment) {
+        toast("Payment cancelled — your order is saved as unpaid.");
+        return;
+      }
+      const paid = await verifyPayment(orderId, payment.transaction_id ?? "");
+      if (paid) {
+        cartActions.clear();
+        toast.success("Payment successful — your order is in!");
         onClose();
-      },
-      onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't place your order."),
-    });
+        navigate("/orders");
+      } else {
+        toast.error("We couldn't confirm your payment. Check My Orders or try again.");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Checkout failed.");
+    } finally {
+      setPaying(false);
+    }
   };
 
   return (
@@ -121,10 +174,10 @@ function CartDrawer({
                 <button
                   type="button"
                   onClick={checkout}
-                  disabled={createOrder.isPending}
+                  disabled={paying}
                   className="w-full bg-primary py-3 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
                 >
-                  {!user ? "Sign in to checkout" : createOrder.isPending ? "Placing order…" : "Place order"}
+                  {!user ? "Sign in to checkout" : paying ? "Processing…" : `Pay ₦${subtotal.toLocaleString()}`}
                 </button>
               </div>
             ) : null}
@@ -293,6 +346,9 @@ const BuyerDashboard = () => {
                 </button>
                 {menuOpen ? (
                   <div className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-none border-2 border-border bg-card p-1 shadow-[var(--shadow-card)]">
+                    <Link to="/orders" onClick={() => setMenuOpen(false)} className="block rounded-none px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      My Orders
+                    </Link>
                     <Link to="/messages" onClick={() => setMenuOpen(false)} className="block rounded-none px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       Messages
                     </Link>

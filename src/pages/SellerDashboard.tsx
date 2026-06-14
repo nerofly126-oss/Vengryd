@@ -13,6 +13,7 @@ import {
   type ProductRow,
 } from "@/lib/seller";
 import { useSellerOrders, useToggleFulfilled, sellerStats } from "@/lib/orders";
+import { useBanks, useMyPayout, useSavePayout } from "@/lib/payout";
 
 const inputClass =
   "w-full rounded-none border-2 border-border bg-secondary/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none";
@@ -506,6 +507,7 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
   };
 
   return (
+    <div className="space-y-6">
     <form onSubmit={submit} className="space-y-5 rounded-none border-2 border-border bg-card p-6">
       <h2 className="font-display text-lg font-bold">Vendor profile</h2>
       <p className="text-sm text-muted-foreground">
@@ -535,6 +537,103 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
       {saved ? <p className="text-sm text-accent">Profile saved — buyers can now find you.</p> : null}
       <button type="submit" disabled={save.isPending} className="rounded-none bg-primary px-6 py-2.5 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
         {save.isPending ? "Saving…" : "Save profile"}
+      </button>
+    </form>
+
+    {vendor ? (
+      <PayoutSection />
+    ) : (
+      <div className="rounded-none border-2 border-dashed border-border p-6 text-sm text-muted-foreground">
+        Save your vendor profile first, then you can connect a payout account to start selling.
+      </div>
+    )}
+    </div>
+  );
+}
+
+/* ---------------- Payouts ---------------- */
+
+function PayoutSection() {
+  const { data: payout } = useMyPayout();
+  const banks = useBanks(true);
+  const save = useSavePayout();
+  const [bankCode, setBankCode] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (payout) {
+      setBankCode(payout.bankCode);
+      setAccountNumber(payout.accountNumber);
+    }
+  }, [payout]);
+
+  const connected = !!payout?.subaccountId;
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!bankCode || accountNumber.trim().length < 10) {
+      setError("Select your bank and enter a valid 10-digit account number.");
+      return;
+    }
+    try {
+      await save.mutateAsync({ bankCode, accountNumber: accountNumber.trim() });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save payout details.");
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="space-y-4 rounded-none border-2 border-border bg-card p-6">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-lg font-bold">Payouts</h2>
+        {connected ? (
+          <span className="bg-primary/15 px-2 py-1 text-xs font-bold uppercase text-primary">Connected</span>
+        ) : (
+          <span className="text-xs font-semibold uppercase text-muted-foreground">Not set up</span>
+        )}
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Add your bank account so buyers can pay you. Sales are auto-settled to this account via Flutterwave, minus a
+        10% platform fee. Buyers can't purchase your products until this is connected.
+      </p>
+      {connected && payout?.accountName ? (
+        <p className="text-sm text-foreground">
+          Paying out to <span className="font-semibold">{payout.accountName}</span> · {payout.accountNumber}
+        </p>
+      ) : null}
+
+      <select
+        className={inputClass}
+        value={bankCode}
+        onChange={(e) => setBankCode(e.target.value)}
+        disabled={banks.isFetching}
+      >
+        <option value="">{banks.isFetching ? "Loading banks…" : "Select your bank"}</option>
+        {banks.data.map((b) => (
+          <option key={b.code} value={b.code}>
+            {b.name}
+          </option>
+        ))}
+      </select>
+      <input
+        className={inputClass}
+        inputMode="numeric"
+        maxLength={10}
+        placeholder="Account number (10 digits)"
+        value={accountNumber}
+        onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ""))}
+      />
+
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {save.isSuccess ? <p className="text-sm text-accent">Payout account verified and connected.</p> : null}
+      <button
+        type="submit"
+        disabled={save.isPending}
+        className="rounded-none bg-primary px-6 py-2.5 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+      >
+        {save.isPending ? "Verifying…" : connected ? "Update payout account" : "Connect payout account"}
       </button>
     </form>
   );

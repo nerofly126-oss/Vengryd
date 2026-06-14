@@ -58,11 +58,13 @@ function toItem(product: Product): StoreItem {
 function ProductDetailModal({
   product,
   vendor,
+  canBuy,
   open,
   onClose,
 }: {
   product: Product;
   vendor: { id: string; name: string } | null;
+  canBuy: boolean;
   open: boolean;
   onClose: () => void;
 }) {
@@ -156,10 +158,11 @@ function ProductDetailModal({
                     }
                     cartActions.add(item);
                   }}
-                  disabled={inCart || isOwn}
+                  disabled={inCart || isOwn || !canBuy}
                   className="flex flex-1 items-center justify-center gap-2 bg-primary py-3 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
                 >
-                  <ShoppingCart className="h-4 w-4" /> {isOwn ? "Your product" : inCart ? "In cart" : "Add to cart"}
+                  <ShoppingCart className="h-4 w-4" />{" "}
+                  {isOwn ? "Your product" : !canBuy ? "Unavailable" : inCart ? "In cart" : "Add to cart"}
                 </button>
                 {isOwn ? null : (
                   <button
@@ -194,10 +197,12 @@ export function ProductCard({ product }: { product: Product }) {
   const ownerVendor = product.sellerId ? vendors.find((v) => v.sellerId === product.sellerId) ?? null : null;
   const vendorRef = ownerVendor ? { id: ownerVendor.id, name: ownerVendor.name } : null;
   const isOwn = !!user && !!product.sellerId && product.sellerId === user.id;
+  // Buyable only once the vendor has set up payouts (so the order can auto-settle).
+  const canBuy = !!ownerVendor?.acceptsPayments;
 
   return (
     <div className="group relative flex flex-col border-2 border-border bg-card p-4 transition-colors hover:border-primary/50">
-      <ProductDetailModal product={product} vendor={vendorRef} open={open} onClose={() => setOpen(false)} />
+      <ProductDetailModal product={product} vendor={vendorRef} canBuy={canBuy} open={open} onClose={() => setOpen(false)} />
       {product.discount ? (
         <span className="absolute left-3 top-3 z-10 bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
           -{product.discount}%
@@ -267,11 +272,11 @@ export function ProductCard({ product }: { product: Product }) {
             }
             cartActions.add(item);
           }}
-          disabled={inCart || isOwn}
+          disabled={inCart || isOwn || !canBuy}
           className="mt-4 flex w-full items-center justify-center gap-2 bg-primary py-2 text-sm font-display font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
         >
           <ShoppingCart className="h-4 w-4" />
-          {isOwn ? "Your product" : inCart ? "In cart" : "Add to cart"}
+          {isOwn ? "Your product" : !canBuy ? "Unavailable" : inCart ? "In cart" : "Add to cart"}
         </button>
       </div>
     </div>

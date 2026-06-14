@@ -15,6 +15,7 @@ import BuyerDashboard from "./pages/BuyerDashboard.tsx";
 import SellerDashboard from "./pages/SellerDashboard.tsx";
 import VendorProfile from "./pages/VendorProfile.tsx";
 import HotDeals from "./pages/HotDeals.tsx";
+import Orders from "./pages/Orders.tsx";
 import Messages from "./pages/Messages.tsx";
 import Settings from "./pages/Settings.tsx";
 import Terms from "./pages/Terms.tsx";
@@ -55,6 +56,7 @@ const App = () => {
             <Route path="/seller" element={<SellerDashboard />} />
             <Route path="/vendor/:id" element={<VendorProfile />} />
             <Route path="/deals" element={<HotDeals />} />
+            <Route path="/orders" element={<Orders />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/terms" element={<Terms />} />
