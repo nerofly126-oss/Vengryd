@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { MapPin, MessageCircle, Phone, Mail, Star } from "lucide-react";
 import { useVendor, useVendorProducts, useMyVendorRating, useRateVendor } from "@/lib/catalog";
+import { useStartConversation } from "@/lib/messaging";
 import { useCurrentUser } from "@/lib/auth";
 import { ProductCard, Stars } from "@/components/catalog-cards";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
@@ -47,14 +47,19 @@ const VendorProfile = () => {
   const { data: products } = useVendorProducts(vendor?.sellerId);
   const { data: myRating } = useMyVendorRating(id);
   const rate = useRateVendor(id);
-  const [note, setNote] = useState("");
+  const startConversation = useStartConversation();
+
+  const isOwner = !!user && !!vendor?.sellerId && vendor.sellerId === user.id;
 
   const onMessage = () => {
     if (!user) {
       navigate("/auth");
       return;
     }
-    setNote("Messaging is coming soon — you'll be able to chat with this vendor right here.");
+    if (!vendor) return;
+    startConversation.mutate(vendor.id, {
+      onSuccess: (conversationId) => navigate(`/messages?c=${conversationId}`),
+    });
   };
 
   if (!vendor) {
@@ -118,18 +123,24 @@ const VendorProfile = () => {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onMessage}
-          className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <MessageCircle className="h-4 w-4" /> Message
-        </button>
+        {isOwner ? (
+          <Link
+            to="/messages"
+            className="flex items-center justify-center gap-2 rounded-xl border-2 border-border px-6 py-3 text-sm font-display font-bold uppercase tracking-tight text-foreground transition-colors hover:border-primary/50"
+          >
+            <MessageCircle className="h-4 w-4" /> Inbox
+          </Link>
+        ) : vendor.sellerId ? (
+          <button
+            type="button"
+            onClick={onMessage}
+            disabled={startConversation.isPending}
+            className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+          >
+            <MessageCircle className="h-4 w-4" /> {startConversation.isPending ? "Opening…" : "Message"}
+          </button>
+        ) : null}
       </section>
-
-      {note ? (
-        <p className="mt-4 rounded-xl border-2 border-border bg-card p-4 text-sm text-accent">{note}</p>
-      ) : null}
 
       {/* Contact details */}
       {vendor.phone || vendor.whatsapp || vendor.email ? (

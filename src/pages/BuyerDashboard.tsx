@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Heart, ShoppingCart, MapPin, X, LogOut, Trash2 } from "lucide-react";
+import { Heart, ShoppingCart, MapPin, X, LogOut, Trash2 } from "lucide-react";
 import { useCategories, useProducts, useVendors } from "@/lib/catalog";
 import { ProductCard, VendorCard } from "@/components/catalog-cards";
+import { HotDealsPromo } from "@/components/HotDealsPromo";
+import { SearchBox } from "@/components/SearchBox";
 import { useCurrentUser, useSignOut, displayName, initials } from "@/lib/auth";
 import { useBuyerArea, areaMatches } from "@/lib/location";
+import { toast } from "sonner";
 import { useCart, useWishlist, cartActions, wishlistActions, type StoreItem } from "@/lib/store";
+import { useCreateOrder } from "@/lib/orders";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
 
 function CartDrawer({
@@ -20,8 +24,24 @@ function CartDrawer({
   const { data: user } = useCurrentUser();
   const cart = useCart();
   const wishlist = useWishlist();
+  const createOrder = useCreateOrder();
   const items = open === "cart" ? cart : wishlist;
   const subtotal = cart.reduce((sum, i) => sum + i.price, 0);
+
+  const checkout = () => {
+    if (!user) {
+      onClose();
+      navigate("/auth");
+      return;
+    }
+    createOrder.mutate(cart, {
+      onSuccess: () => {
+        toast.success("Order placed! The vendor has been notified.");
+        onClose();
+      },
+      onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't place your order."),
+    });
+  };
 
   return (
     <AnimatePresence>
@@ -100,13 +120,11 @@ function CartDrawer({
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    onClose();
-                    if (!user) navigate("/auth");
-                  }}
-                  className="w-full bg-primary py-3 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90"
+                  onClick={checkout}
+                  disabled={createOrder.isPending}
+                  className="w-full bg-primary py-3 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
                 >
-                  {user ? "Checkout (coming soon)" : "Sign in to checkout"}
+                  {!user ? "Sign in to checkout" : createOrder.isPending ? "Placing order…" : "Place order"}
                 </button>
               </div>
             ) : null}
@@ -119,7 +137,6 @@ function CartDrawer({
 
 const BuyerDashboard = () => {
   const [query, setQuery] = useState("");
-  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const { data: user } = useCurrentUser();
@@ -152,34 +169,27 @@ const BuyerDashboard = () => {
   const showLoader = !dataReady || !minElapsed;
 
   const q = query.trim().toLowerCase();
-  const activeCategory = categories.find((c) => c.id === activeCategoryId) ?? null;
-  const isBrowsing = activeCategoryId !== null || q.length > 0;
+  const isBrowsing = q.length > 0;
   const matches = (text: string) => !q || text.toLowerCase().includes(q);
+  // So searching a category name (e.g. "gadgets", "barbers") surfaces that category.
+  const catLabel = (id?: string) => categories.find((c) => c.id === id)?.label ?? "";
 
-  const showProducts = !activeCategory || activeCategory.kind === "product";
-  const showVendors = !activeCategory || activeCategory.kind === "service";
-
-  const resultProducts = showProducts
-    ? products.filter((p) => (!activeCategoryId || p.categoryId === activeCategoryId) && matches(p.name))
-    : [];
-  const resultVendors = showVendors
-    ? vendors.filter(
-        (v) =>
-          (!activeCategoryId || v.categoryId === activeCategoryId) &&
-          areaMatches(v.area, area) &&
-          (matches(v.name) || v.services.some(matches)),
-      )
-    : [];
+  const resultProducts = products.filter((p) => matches(p.name) || matches(catLabel(p.categoryId)));
+  const resultVendors = vendors.filter(
+    (v) =>
+      areaMatches(v.area, area) &&
+      (matches(v.name) || v.services.some(matches) || matches(catLabel(v.categoryId))),
+  );
 
   const nearbyVendors = vendors.filter((v) => areaMatches(v.area, area));
 
   const hotDeals = products.filter((p) => p.isHotDeal);
-  const featured = products.filter((p) => p.isFeatured);
+  // Hot-deal products live in the Hot Deals section only — keep them out of the marketplace grid.
+  const featured = products.filter((p) => p.isFeatured && !p.isHotDeal);
   const isLoading = productsLoading || vendorsLoading;
 
   const clearBrowse = () => {
     setQuery("");
-    setActiveCategoryId(null);
   };
 
   return (
@@ -244,31 +254,15 @@ const BuyerDashboard = () => {
             ) : null}
           </div>
 
-          <form
-            onSubmit={(e) => e.preventDefault()}
-            className="hidden flex-1 items-center md:flex"
-          >
-            <div className="flex w-full items-center rounded-none border-2 border-border bg-secondary/40 focus-within:border-primary">
-              <Search className="ml-3 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search products, barbers, stylists, vendors..."
-                className="w-full bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-              />
-              {query ? (
-                <button type="button" onClick={() => setQuery("")} className="px-2 text-muted-foreground hover:text-foreground" aria-label="Clear search">
-                  <X className="h-4 w-4" />
-                </button>
-              ) : null}
-              <button
-                type="submit"
-                className="m-1 rounded-none bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                Search
-              </button>
-            </div>
+          <form onSubmit={(e) => e.preventDefault()} className="hidden flex-1 items-center md:flex">
+            <SearchBox
+              products={products}
+              vendors={vendors}
+              value={query}
+              onChange={setQuery}
+              placeholder="Search products, barbers, stylists, vendors..."
+              showButton
+            />
           </form>
 
           <div className="ml-auto flex items-center gap-4 text-muted-foreground">
@@ -299,6 +293,9 @@ const BuyerDashboard = () => {
                 </button>
                 {menuOpen ? (
                   <div className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-none border-2 border-border bg-card p-1 shadow-[var(--shadow-card)]">
+                    <Link to="/messages" onClick={() => setMenuOpen(false)} className="block rounded-none px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      Messages
+                    </Link>
                     <Link to="/seller" onClick={() => setMenuOpen(false)} className="block rounded-none px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       Sell on vengryd
                     </Link>
@@ -328,16 +325,7 @@ const BuyerDashboard = () => {
 
         {/* Mobile search + location */}
         <div className="px-4 pb-3 md:hidden">
-          <div className="flex items-center rounded-none border-2 border-border bg-secondary/40 focus-within:border-primary">
-            <Search className="ml-3 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search products, vendors..."
-              className="w-full bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-            />
-          </div>
+          <SearchBox products={products} vendors={vendors} value={query} onChange={setQuery} />
           <button
             type="button"
             onClick={() => {
@@ -403,31 +391,11 @@ const BuyerDashboard = () => {
           </section>
         ) : null}
 
-        {/* Category bar — click to filter */}
-        {categories.length > 0 ? (
-          <section className="grid grid-cols-3 gap-4 rounded-none border-2 border-border bg-card p-6 sm:grid-cols-4 lg:grid-cols-8">
-            {categories.map((cat) => {
-              const active = cat.id === activeCategoryId;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setActiveCategoryId(active ? null : cat.id)}
-                  className="group flex flex-col items-center gap-2 text-center"
-                >
-                  <span
-                    className={`flex h-16 w-16 items-center justify-center rounded-full transition-colors ${
-                      active ? "bg-primary/20 ring-2 ring-primary" : "bg-secondary/60 group-hover:bg-primary/15"
-                    }`}
-                  >
-                    <cat.icon className="h-7 w-7 text-primary" strokeWidth={1.5} />
-                  </span>
-                  <span className={`text-xs font-semibold ${active ? "text-primary" : "text-foreground"}`}>{cat.label}</span>
-                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{cat.kind}</span>
-                </button>
-              );
-            })}
-          </section>
+        {/* Hot Deals promo — leads the dashboard, full-bleed */}
+        {!isBrowsing && hotDeals.length > 0 ? (
+          <div className="-mx-4 sm:-mx-6">
+            <HotDealsPromo deals={hotDeals} />
+          </div>
         ) : null}
 
         {isBrowsing ? (
@@ -435,7 +403,7 @@ const BuyerDashboard = () => {
           <section className="space-y-8">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl font-bold text-foreground">
-                {activeCategory ? activeCategory.label : `Results for “${query}”`}
+                {`Results for “${query}”`}
               </h2>
               <button
                 type="button"
@@ -478,20 +446,6 @@ const BuyerDashboard = () => {
         ) : (
           /* ---------------- Default storefront ---------------- */
           <>
-            {hotDeals.length > 0 ? (
-              <section>
-                <h2 className="mb-4 flex items-center gap-2 font-display text-xl font-bold text-foreground">
-                  <span className="rounded bg-primary/15 px-2 py-1 text-xs font-bold uppercase text-primary">Hot Deals</span>
-                  Best prices right now
-                </h2>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-                  {hotDeals.map((p) => (
-                    <ProductCard key={p.id} product={p} />
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
             <section>
               <h2 className="mb-5 font-display text-xl font-bold text-foreground">View Marketplace</h2>
               {isLoading ? (

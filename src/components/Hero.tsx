@@ -22,12 +22,12 @@ const Hero = () => {
         </motion.span>
 
         <motion.h1
-          className="max-w-3xl font-display text-5xl font-black uppercase leading-[0.88] tracking-tighter sm:text-7xl lg:text-8xl [text-shadow:0_4px_30px_rgba(0,0,0,0.6)]"
+          className="max-w-3xl font-editorial text-5xl font-semibold leading-[0.98] tracking-tight sm:text-7xl lg:text-[5.5rem] [text-shadow:0_4px_30px_rgba(0,0,0,0.6)]"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
         >
-          Trade. Grow. <span className="text-primary">Thrive.</span>
+          Trade. Grow. <span className="italic text-primary">Thrive.</span>
         </motion.h1>
 
         <motion.p

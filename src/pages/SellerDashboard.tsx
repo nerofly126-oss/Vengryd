@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Trash2, Pencil, ImagePlus, Store, Package, MapPin } from "lucide-react";
+import { Trash2, Pencil, ImagePlus, Store, Package, MapPin, Coins, ShoppingBag, Boxes, Clock } from "lucide-react";
 import { useCategories } from "@/lib/catalog";
 import {
   useCurrentUser,
@@ -12,6 +12,7 @@ import {
   uploadImage,
   type ProductRow,
 } from "@/lib/seller";
+import { useSellerOrders, useToggleFulfilled, sellerStats } from "@/lib/orders";
 
 const inputClass =
   "w-full rounded-none border-2 border-border bg-secondary/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none";
@@ -81,7 +82,7 @@ const SellerDashboard = () => {
   const productCats = categories.filter((c) => c.kind === "product");
   const serviceCats = categories.filter((c) => c.kind === "service");
 
-  const [tab, setTab] = useState<"products" | "profile">("products");
+  const [tab, setTab] = useState<"overview" | "orders" | "products" | "profile">("overview");
 
   if (!user) {
     return (
@@ -112,30 +113,39 @@ const SellerDashboard = () => {
             ven<span className="text-primary">gryd</span>{" "}
             <span className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Seller</span>
           </Link>
-          <Link to="/dashboard" className="text-sm font-semibold text-primary hover:underline">
-            View marketplace
-          </Link>
+          <nav className="flex items-center gap-5">
+            <Link to="/messages" className="text-sm font-semibold text-primary hover:underline">
+              Messages
+            </Link>
+            <Link to="/dashboard" className="text-sm font-semibold text-primary hover:underline">
+              View marketplace
+            </Link>
+          </nav>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         {/* Tabs */}
         <div className="mb-8 flex gap-1 rounded-full border-2 border-border p-1">
-          {(["products", "profile"] as const).map((t) => (
+          {(["overview", "orders", "products", "profile"] as const).map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => setTab(t)}
-              className={`flex-1 rounded-full px-4 py-2 text-sm font-display font-semibold uppercase tracking-tight transition-colors ${
+              className={`flex-1 rounded-full px-4 py-2 text-xs font-display font-semibold uppercase tracking-tight transition-colors sm:text-sm ${
                 tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t === "products" ? "My Products" : "My Profile"}
+              {t === "overview" ? "Overview" : t === "orders" ? "Orders" : t === "products" ? "Products" : "Profile"}
             </button>
           ))}
         </div>
 
-        {tab === "products" ? (
+        {tab === "overview" ? (
+          <OverviewTab onSeeOrders={() => setTab("orders")} />
+        ) : tab === "orders" ? (
+          <OrdersTab />
+        ) : tab === "products" ? (
           <ProductsTab productCats={productCats} onRequireLocation={() => setTab("profile")} />
         ) : (
           <ProfileTab serviceCats={serviceCats} />
@@ -144,6 +154,122 @@ const SellerDashboard = () => {
     </div>
   );
 };
+
+const naira = (n: number) => `₦${n.toLocaleString()}`;
+
+/* ---------------- Overview tab ---------------- */
+
+function StatCard({ icon: Icon, label, value }: { icon: typeof Coins; label: string; value: string }) {
+  return (
+    <div className="rounded-none border-2 border-border bg-card p-5">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="h-4 w-4 text-primary" />
+        <span className="text-xs font-semibold uppercase tracking-wide">{label}</span>
+      </div>
+      <p className="mt-3 font-display text-2xl font-black tracking-tight text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function OverviewTab({ onSeeOrders }: { onSeeOrders: () => void }) {
+  const { data: orders } = useSellerOrders();
+  const { data: products } = useMyProducts();
+  const stats = sellerStats(orders);
+
+  return (
+    <div className="space-y-8">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard icon={Coins} label="Revenue" value={naira(stats.revenue)} />
+        <StatCard icon={ShoppingBag} label="Orders" value={String(stats.orders)} />
+        <StatCard icon={Boxes} label="Units sold" value={String(stats.units)} />
+        <StatCard icon={Clock} label="Pending" value={String(stats.pending)} />
+      </div>
+
+      <div className="rounded-none border-2 border-border bg-card p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-lg font-bold text-foreground">How you're doing</h2>
+          <button type="button" onClick={onSeeOrders} className="text-sm font-semibold text-primary hover:underline">
+            View orders →
+          </button>
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          You have <span className="font-semibold text-foreground">{products.length}</span> product
+          {products.length === 1 ? "" : "s"} listed
+          {stats.pending > 0 ? (
+            <>
+              {" "}
+              and <span className="font-semibold text-foreground">{stats.pending}</span> item
+              {stats.pending === 1 ? "" : "s"} waiting to be fulfilled.
+            </>
+          ) : (
+            <> — all caught up on fulfilment.</>
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Orders tab ---------------- */
+
+function OrdersTab() {
+  const { data: orders } = useSellerOrders();
+  const toggle = useToggleFulfilled();
+
+  if (orders.length === 0) {
+    return (
+      <div className="rounded-none border-2 border-dashed border-border py-16 text-center">
+        <ShoppingBag className="mx-auto h-8 w-8 text-muted-foreground" />
+        <p className="mt-3 text-sm text-muted-foreground">No orders yet. They'll show up here once buyers check out.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {orders.map((o) => (
+        <div key={o.id} className="rounded-none border-2 border-border bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3">
+            <div>
+              <p className="font-display text-sm font-bold text-foreground">Order #{o.id.slice(0, 8)}</p>
+              <p className="text-xs text-muted-foreground">{new Date(o.createdAt).toLocaleDateString()}</p>
+            </div>
+            <div className="text-right">
+              <p className="font-display text-base font-bold text-primary">{naira(o.subtotal)}</p>
+              {o.status === "cancelled" ? (
+                <span className="text-xs font-semibold uppercase text-destructive">Cancelled</span>
+              ) : null}
+            </div>
+          </div>
+          <ul className="divide-y divide-border">
+            {o.items.map((it) => (
+              <li key={it.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm text-foreground">{it.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {it.quantity} × {naira(it.unitPrice)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggle.mutate({ itemId: it.id, fulfilled: !it.fulfilled })}
+                  disabled={toggle.isPending || o.status === "cancelled"}
+                  className={`shrink-0 border-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-tight transition-colors disabled:opacity-60 ${
+                    it.fulfilled
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/50"
+                  }`}
+                >
+                  {it.fulfilled ? "Fulfilled" : "Mark fulfilled"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /* ---------------- Products tab ---------------- */
 

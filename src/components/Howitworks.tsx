@@ -76,8 +76,8 @@ const HowItWorks = () => {
           viewport={{ once: true }}
         >
           <span className="eyebrow-kicker mb-6">How it works</span>
-          <h2 className="font-display font-black uppercase leading-[0.85] tracking-tighter text-5xl md:text-7xl mb-6">
-            Sign-up to your <span className="text-stroke-primary">first trade</span>
+          <h2 className="font-editorial font-semibold leading-[1.02] tracking-tight text-5xl md:text-7xl mb-6">
+            Sign-up to your <span className="italic text-primary">first trade</span>
           </h2>
           <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
             vengryd brings your local economy online — connecting buyers and sellers who are
@@ -126,8 +126,8 @@ const HowItWorks = () => {
           viewport={{ once: true }}
         >
           <span className="eyebrow-kicker mb-6">The toolkit</span>
-          <h3 className="font-display font-black uppercase leading-[0.85] tracking-tighter text-5xl md:text-7xl mb-6">
-            More than a <span className="text-stroke">listing site</span>
+          <h3 className="font-editorial font-semibold leading-[1.02] tracking-tight text-5xl md:text-7xl mb-6">
+            More than a <span className="italic text-primary">listing site</span>
           </h3>
           <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
             A full toolkit for trading within your own community.

@@ -1,9 +1,9 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
+import FeatureBlocks from "@/components/FeatureBlocks";
 import Categories from "@/components/Categories";
-import ValueProps from "@/components/ValueProps";
 import HowItWorks from "@/components/Howitworks";
-import CTA from "@/components/CTA";
+import ShowcaseBanner from "@/components/ShowcaseBanner";
 import Footer from "@/components/Footer";
 import LeafCorners from "@/components/Leafcorners";
 
@@ -21,16 +21,14 @@ const Index = () => {
         <LeafCorners />
         <Navbar />
         <Hero />
+        <FeatureBlocks />
         <div id="categories">
           <Categories />
         </div>
-        <ValueProps />
         <div id="how">
           <HowItWorks />
         </div>
-        <div id="join">
-          <CTA />
-        </div>
+        <ShowcaseBanner />
         <Footer />
       </div>
     </div>

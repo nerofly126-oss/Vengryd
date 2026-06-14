@@ -19,6 +19,7 @@ const config: Config = {
       fontFamily: {
         display: ["Urbanist", "sans-serif"],
         body: ["Urbanist", "sans-serif"],
+        editorial: ["Fraunces", "Georgia", "serif"],
       },
       colors: {
         earth: {

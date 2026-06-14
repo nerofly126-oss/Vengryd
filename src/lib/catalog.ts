@@ -17,6 +17,7 @@ import {
   Gem,
   Sparkles,
   Leaf,
+  PawPrint,
   Package,
   type LucideIcon,
 } from "lucide-react";
@@ -41,6 +42,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   gem: Gem,
   sparkles: Sparkles,
   leaf: Leaf,
+  pawprint: PawPrint,
 };
 
 const iconFor = (name: string | null | undefined) => ICON_MAP[name ?? ""] ?? Package;

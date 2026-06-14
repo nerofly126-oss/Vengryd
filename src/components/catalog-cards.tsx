@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, Heart, MapPin, ShoppingCart, X, type LucideIcon } from "lucide-react";
+import { Star, Heart, MapPin, ShoppingCart, MessageCircle, X, type LucideIcon } from "lucide-react";
 import { useVendors, type Product, type Vendor } from "@/lib/catalog";
 import { useCart, useWishlist, cartActions, wishlistActions, type StoreItem } from "@/lib/store";
+import { useStartConversation } from "@/lib/messaging";
 import { useCurrentUser } from "@/lib/auth";
 
 export function Stars({ rating }: { rating: number }) {
@@ -278,6 +279,23 @@ export function ProductCard({ product }: { product: Product }) {
 }
 
 export function VendorCard({ vendor }: { vendor: Vendor }) {
+  const navigate = useNavigate();
+  const { data: user } = useCurrentUser();
+  const startConversation = useStartConversation();
+  const isOwner = !!user && !!vendor.sellerId && vendor.sellerId === user.id;
+  // Messaging only works for vendors claimed by a seller (sellerId set).
+  const canMessage = !!vendor.sellerId && !isOwner;
+
+  const onMessage = () => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    startConversation.mutate(vendor.id, {
+      onSuccess: (conversationId) => navigate(`/messages?c=${conversationId}`),
+    });
+  };
+
   return (
     <div className="group flex flex-col border-2 border-border bg-card p-4 transition-colors hover:border-primary/50">
       <MediaThumb icon={vendor.icon} tint={vendor.tint} imageUrl={vendor.imageUrl} alt={vendor.name} />
@@ -301,12 +319,25 @@ export function VendorCard({ vendor }: { vendor: Vendor }) {
             ))}
           </div>
         ) : null}
-        <Link
-          to={`/vendor/${vendor.id}`}
-          className="mt-4 w-full bg-primary py-2 text-center text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          View profile
-        </Link>
+        <div className="mt-4 flex gap-2">
+          <Link
+            to={`/vendor/${vendor.id}`}
+            className="flex-1 bg-primary py-2 text-center text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            View profile
+          </Link>
+          {canMessage ? (
+            <button
+              type="button"
+              onClick={onMessage}
+              disabled={startConversation.isPending}
+              className="flex items-center justify-center border-2 border-border px-3 text-foreground transition-colors hover:border-primary/50 disabled:opacity-60"
+              aria-label={`Message ${vendor.name}`}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );

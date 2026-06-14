@@ -10,12 +10,15 @@ import LoadingScreen from "@/components/LoadingScreen";
 import SectionLayout from "@/components/SectionLayout";
 import Categories from "@/components/Categories";
 import HowItWorks from "@/components/Howitworks";
-import CTA from "@/components/CTA";
 import Index from "./pages/Index.tsx";
 import BuyerDashboard from "./pages/BuyerDashboard.tsx";
 import SellerDashboard from "./pages/SellerDashboard.tsx";
 import VendorProfile from "./pages/VendorProfile.tsx";
+import HotDeals from "./pages/HotDeals.tsx";
+import Messages from "./pages/Messages.tsx";
 import Settings from "./pages/Settings.tsx";
+import Terms from "./pages/Terms.tsx";
+import Privacy from "./pages/Privacy.tsx";
 import Auth from "./pages/Auth.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -51,10 +54,13 @@ const App = () => {
             <Route path="/dashboard" element={<BuyerDashboard />} />
             <Route path="/seller" element={<SellerDashboard />} />
             <Route path="/vendor/:id" element={<VendorProfile />} />
+            <Route path="/deals" element={<HotDeals />} />
+            <Route path="/messages" element={<Messages />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route path="/categories" element={<SectionLayout><Categories /></SectionLayout>} />
             <Route path="/how-it-works" element={<SectionLayout><HowItWorks /></SectionLayout>} />
-            <Route path="/join" element={<SectionLayout><CTA /></SectionLayout>} />
             <Route path="/auth" element={<Auth />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

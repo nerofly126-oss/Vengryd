@@ -38,17 +38,11 @@ const Categories = () => {
   return (
     <section className="py-20 md:py-28">
       <div className="container">
-        <div className="mb-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <span className="eyebrow-kicker mb-4">Explore</span>
-            <h2 className="font-display text-4xl font-black uppercase tracking-tighter sm:text-6xl">Shop by category</h2>
-          </div>
-          <Link
-            to="/dashboard"
-            className="liquid-button liquid-button-soft w-fit px-6 py-3 text-sm font-display font-semibold"
-          >
-            View all
-          </Link>
+        <div className="mb-12">
+          <span className="eyebrow-kicker mb-4">Explore</span>
+          <h2 className="font-editorial text-4xl font-semibold tracking-tight sm:text-6xl">
+            Shop by <span className="italic text-primary">category</span>
+          </h2>
         </div>
 
         <div className="grid grid-flow-dense grid-cols-2 auto-rows-[9rem] gap-4 sm:auto-rows-[11rem] lg:grid-cols-4 lg:auto-rows-[13rem]">

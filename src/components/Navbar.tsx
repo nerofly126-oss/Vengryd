@@ -7,7 +7,6 @@ const MotionLink = motion(Link);
 const mobileLinks = [
   { to: "/categories", label: "Categories" },
   { to: "/how-it-works", label: "How It Works" },
-  { to: "/join", label: "Join" },
 ];
 
 const mobileMenuVariants = {
@@ -69,9 +68,6 @@ const Navbar = () => {
               </a>
               <a href="#how" className="navbar-desktop-link">
                 How It Works
-              </a>
-              <a href="#join" className="navbar-desktop-link">
-                Join
               </a>
               <Link
                 to="/dashboard"
