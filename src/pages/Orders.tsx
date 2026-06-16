@@ -20,7 +20,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           <Link to="/" className="font-display text-2xl font-black tracking-tight text-foreground">
             ven<span className="text-primary">gryd</span>
           </Link>
-          <Link to="/dashboard" className="text-sm font-semibold text-primary hover:underline">
+          <Link to="/marketplace" className="text-sm font-semibold text-primary hover:underline">
             Marketplace
           </Link>
         </div>
@@ -103,7 +103,7 @@ const Orders = () => {
         <div className="rounded-none border-2 border-dashed border-border py-16 text-center">
           <Package className="mx-auto h-8 w-8 text-muted-foreground" />
           <p className="mt-3 text-sm text-muted-foreground">You haven't placed any orders yet.</p>
-          <Link to="/dashboard" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
+          <Link to="/marketplace" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
             Browse the marketplace
           </Link>
         </div>

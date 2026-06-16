@@ -1,6 +1,72 @@
 import { useState } from "react";
 
 const AREA_KEY = "vengryd-area";
+const COORDS_KEY = "vengryd-coords";
+
+export type Coords = { lat: number; lng: number };
+
+/** Buyer's GPS coordinates, persisted in localStorage. */
+export function useBuyerCoords() {
+  const [coords, setCoordsState] = useState<Coords | null>(() => {
+    try {
+      const raw = localStorage.getItem(COORDS_KEY);
+      return raw ? (JSON.parse(raw) as Coords) : null;
+    } catch {
+      return null;
+    }
+  });
+  const setCoords = (next: Coords | null) => {
+    setCoordsState(next);
+    try {
+      if (next) localStorage.setItem(COORDS_KEY, JSON.stringify(next));
+      else localStorage.removeItem(COORDS_KEY);
+    } catch {
+      /* ignore storage errors */
+    }
+  };
+  return [coords, setCoords] as const;
+}
+
+/** Promise wrapper around the browser geolocation API. */
+export function getCurrentCoords(): Promise<Coords> {
+  return new Promise((resolve, reject) => {
+    if (!("geolocation" in navigator)) {
+      reject(new Error("Location isn't supported on this device."));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (err) => reject(new Error(err.code === err.PERMISSION_DENIED ? "Location permission denied." : "Couldn't get your location.")),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  });
+}
+
+/** Turn coordinates into a readable area name (free, no API key). Returns "" on failure. */
+export async function reverseGeocode(c: Coords): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${c.lat}&longitude=${c.lng}&localityLanguage=en`,
+    );
+    if (!res.ok) return "";
+    const d = (await res.json()) as { locality?: string; city?: string; principalSubdivision?: string };
+    const parts = [d.locality || d.city, d.principalSubdivision].filter(Boolean);
+    return parts.join(", ");
+  } catch {
+    return "";
+  }
+}
+
+/** Great-circle distance in kilometres (haversine). */
+export function distanceKm(a: Coords, b: Coords): number {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
 
 /** Buyer's chosen area/city, persisted in localStorage. */
 export function useBuyerArea() {

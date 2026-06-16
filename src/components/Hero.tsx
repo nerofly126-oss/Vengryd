@@ -46,7 +46,7 @@ const Hero = () => {
           transition={{ duration: 0.7, delay: 0.4 }}
         >
           <Link
-            to="/dashboard"
+            to="/marketplace"
             className="liquid-button liquid-button-primary px-8 py-4 text-base font-display font-semibold sm:text-lg"
           >
             Shop the marketplace

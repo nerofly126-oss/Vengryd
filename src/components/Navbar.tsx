@@ -70,7 +70,7 @@ const Navbar = () => {
                 How It Works
               </a>
               <Link
-                to="/dashboard"
+                to="/marketplace"
                 className="liquid-button liquid-button-primary ml-3 px-5 py-2 text-sm font-display font-semibold"
               >
                 View Marketplace
@@ -115,7 +115,7 @@ const Navbar = () => {
                 ))}
                 <motion.div variants={mobileItemVariants} className="pt-2">
                   <Link
-                    to="/dashboard"
+                    to="/marketplace"
                     onClick={() => setOpen(false)}
                     className="liquid-button liquid-button-primary px-5 py-2.5 text-sm font-display font-semibold"
                   >

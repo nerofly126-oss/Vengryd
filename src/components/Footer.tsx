@@ -8,7 +8,7 @@ const columns: { heading: string; links: FooterLink[] }[] = [
     heading: "Explore",
     links: [
       { label: "Home", to: "/" },
-      { label: "Marketplace", to: "/dashboard" },
+      { label: "Marketplace", to: "/marketplace" },
       { label: "How it works", to: "/how-it-works" },
       { label: "Categories", to: "/categories" },
     ],
@@ -80,7 +80,7 @@ const Footer = () => {
           {/* CTAs */}
           <div className="flex flex-col gap-3">
             <Link
-              to="/dashboard"
+              to="/marketplace"
               className="group inline-flex items-center justify-between gap-3 rounded-full bg-primary px-6 py-3 font-display text-sm font-bold uppercase tracking-tight text-primary-foreground transition-colors hover:bg-primary/90"
             >
               Shop now

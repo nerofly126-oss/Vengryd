@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, User, AtSign, Mail, Lock } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import LeafCorners from "@/components/Leafcorners";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
@@ -18,6 +18,7 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "invalid" | "checking" | "available" | "taken">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -32,7 +33,7 @@ const Auth = () => {
       const supabase = getSupabaseClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/dashboard` },
+        options: { redirectTo: `${window.location.origin}/marketplace` },
       });
       // On success the browser redirects to Google, so we only handle errors here.
       if (error) {
@@ -46,6 +47,7 @@ const Auth = () => {
   };
   const [form, setForm] = useState({
     fullName: "",
+    username: "",
     email: "",
     password: "",
   });
@@ -62,6 +64,35 @@ const Auth = () => {
       setSuccessMessage("Enter a new password to finish recovering your account.");
     }
   }, [queryMode]);
+
+  // Live username availability check (signup only).
+  useEffect(() => {
+    if (mode !== "signup") return;
+    const u = form.username.trim().toLowerCase();
+    if (!u) {
+      setUsernameStatus("idle");
+      return;
+    }
+    if (!/^[a-z0-9_]{3,20}$/.test(u)) {
+      setUsernameStatus("invalid");
+      return;
+    }
+    setUsernameStatus("checking");
+    const timer = window.setTimeout(async () => {
+      if (!isSupabaseConfigured()) {
+        setUsernameStatus("idle");
+        return;
+      }
+      const { data } = await getSupabaseClient()
+        .from("profiles")
+        .select("id")
+        .ilike("username", u)
+        .limit(1)
+        .maybeSingle();
+      setUsernameStatus(data ? "taken" : "available");
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [form.username, mode]);
 
   useEffect(() => {
     if (!authConfigured) {
@@ -84,7 +115,7 @@ const Auth = () => {
             setSuccessMessage("Enter a new password to finish recovering your account.");
             return;
           }
-          navigate("/dashboard", { replace: true });
+          navigate("/marketplace", { replace: true });
           return;
         }
 
@@ -112,7 +143,7 @@ const Auth = () => {
 
         void (async () => {
           await ensureProfile(session.user);
-          navigate("/dashboard", { replace: true });
+          navigate("/marketplace", { replace: true });
         })();
       }
     });
@@ -169,6 +200,14 @@ const Auth = () => {
     const normalizedEmail = form.email.trim().toLowerCase();
     const password = form.password.trim();
 
+    if (mode === "signup" && (usernameStatus === "taken" || usernameStatus === "invalid")) {
+      setIsSubmitting(false);
+      setErrorMessage(
+        usernameStatus === "taken" ? "That username is taken — pick another." : "Please choose a valid username.",
+      );
+      return;
+    }
+
     try {
       const supabase = getAuthClient();
 
@@ -180,6 +219,7 @@ const Auth = () => {
             emailRedirectTo: `${window.location.origin}/auth`,
             data: {
               full_name: form.fullName.trim(),
+              username: form.username.trim().toLowerCase(),
               role: "buyer",
             },
           },
@@ -204,7 +244,7 @@ const Auth = () => {
 
         if (data.user && data.session) {
           await ensureProfile(data.user);
-          navigate("/dashboard", { replace: true });
+          navigate("/marketplace", { replace: true });
           return;
         }
 
@@ -227,7 +267,7 @@ const Auth = () => {
           await ensureProfile(user);
         }
 
-        navigate("/dashboard", { replace: true });
+        navigate("/marketplace", { replace: true });
       } else {
         const { data, error } = await supabase.auth.updateUser({
           password,
@@ -241,7 +281,7 @@ const Auth = () => {
           await ensureProfile(data.user);
         }
 
-        navigate("/dashboard", { replace: true });
+        navigate("/marketplace", { replace: true });
       }
     } catch (error) {
       setErrorMessage(
@@ -381,6 +421,39 @@ const Auth = () => {
                     />
                   </div>
 
+                  <div className="relative">
+                    <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      name="username"
+                      value={form.username}
+                      onChange={handleChange}
+                      placeholder="Username"
+                      autoCapitalize="none"
+                      required={mode === "signup"}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-secondary/30 text-foreground placeholder:text-muted-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                    />
+                    {form.username ? (
+                      <p
+                        className={`mt-1 pl-1 text-xs font-body ${
+                          usernameStatus === "available"
+                            ? "text-accent"
+                            : usernameStatus === "checking"
+                              ? "text-muted-foreground"
+                              : "text-destructive"
+                        }`}
+                      >
+                        {usernameStatus === "checking"
+                          ? "Checking availability…"
+                          : usernameStatus === "available"
+                            ? "Username is available"
+                            : usernameStatus === "taken"
+                              ? "That username is taken"
+                              : usernameStatus === "invalid"
+                                ? "3–20 characters, letters, numbers or _"
+                                : ""}
+                      </p>
+                    ) : null}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

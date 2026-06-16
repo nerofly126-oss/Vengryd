@@ -18,6 +18,19 @@ import {
   Sparkles,
   Leaf,
   PawPrint,
+  ShoppingBasket,
+  Baby,
+  Sofa,
+  BookOpen,
+  Car,
+  Hammer,
+  GlassWater,
+  Flower2,
+  Droplets,
+  Truck,
+  Building2,
+  GraduationCap,
+  Stethoscope,
   Package,
   type LucideIcon,
 } from "lucide-react";
@@ -43,6 +56,19 @@ const ICON_MAP: Record<string, LucideIcon> = {
   sparkles: Sparkles,
   leaf: Leaf,
   pawprint: PawPrint,
+  basket: ShoppingBasket,
+  baby: Baby,
+  sofa: Sofa,
+  book: BookOpen,
+  car: Car,
+  hammer: Hammer,
+  glass: GlassWater,
+  flower: Flower2,
+  droplets: Droplets,
+  truck: Truck,
+  building: Building2,
+  graduation: GraduationCap,
+  stethoscope: Stethoscope,
 };
 
 const iconFor = (name: string | null | undefined) => ICON_MAP[name ?? ""] ?? Package;
@@ -79,6 +105,7 @@ export type Product = {
 
 export type Vendor = {
   id: string;
+  slug: string;
   name: string;
   categoryId?: string;
   sellerId?: string;
@@ -95,6 +122,8 @@ export type Vendor = {
   /** Flutterwave subaccount id — present once the vendor has set up payouts. */
   subaccountId?: string;
   acceptsPayments: boolean;
+  lat?: number;
+  lng?: number;
 };
 
 type CategoryRow = { id: string; label: string; icon: string | null; kind: string | null; product_count: number };
@@ -119,6 +148,7 @@ type ProductRow = {
 };
 type VendorRow = {
   id: string;
+  slug: string | null;
   name: string;
   category_id: string | null;
   seller_id: string | null;
@@ -133,6 +163,8 @@ type VendorRow = {
   whatsapp: string | null;
   contact_email: string | null;
   flw_subaccount_id: string | null;
+  lat: number | null;
+  lng: number | null;
 };
 
 function mapCategory(row: CategoryRow): Category {
@@ -170,6 +202,7 @@ function mapProduct(row: ProductRow): Product {
 function mapVendor(row: VendorRow): Vendor {
   return {
     id: row.id,
+    slug: row.slug ?? row.id,
     name: row.name,
     categoryId: row.category_id ?? undefined,
     sellerId: row.seller_id ?? undefined,
@@ -185,6 +218,8 @@ function mapVendor(row: VendorRow): Vendor {
     email: row.contact_email ?? undefined,
     subaccountId: row.flw_subaccount_id ?? undefined,
     acceptsPayments: !!row.flw_subaccount_id,
+    lat: row.lat ?? undefined,
+    lng: row.lng ?? undefined,
   };
 }
 
@@ -219,7 +254,7 @@ async function fetchVendors(): Promise<Vendor[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("vendors")
-    .select("id, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email, flw_subaccount_id")
+    .select("id, slug, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email, flw_subaccount_id, lat, lng")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return ((data ?? []) as VendorRow[]).map(mapVendor);
@@ -234,8 +269,9 @@ export function useVendor(id?: string) {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase
         .from("vendors")
-        .select("id, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email, flw_subaccount_id")
-        .eq("id", id)
+        .select("id, slug, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email, flw_subaccount_id, lat, lng")
+        .or(`slug.eq.${id},id.eq.${id}`)
+        .limit(1)
         .maybeSingle();
       if (error) throw error;
       return data ? mapVendor(data as VendorRow) : null;

@@ -63,7 +63,7 @@ function ProductDetailModal({
   onClose,
 }: {
   product: Product;
-  vendor: { id: string; name: string } | null;
+  vendor: { slug: string; name: string } | null;
   canBuy: boolean;
   open: boolean;
   onClose: () => void;
@@ -139,7 +139,7 @@ function ProductDetailModal({
               ) : null}
               {vendor ? (
                 <Link
-                  to={`/vendor/${vendor.id}`}
+                  to={`/vendor/${vendor.slug}`}
                   onClick={onClose}
                   className="mt-3 text-sm font-semibold text-primary hover:underline"
                 >
@@ -195,13 +195,13 @@ export function ProductCard({ product }: { product: Product }) {
 
   const { data: vendors } = useVendors();
   const ownerVendor = product.sellerId ? vendors.find((v) => v.sellerId === product.sellerId) ?? null : null;
-  const vendorRef = ownerVendor ? { id: ownerVendor.id, name: ownerVendor.name } : null;
+  const vendorRef = ownerVendor ? { slug: ownerVendor.slug, name: ownerVendor.name } : null;
   const isOwn = !!user && !!product.sellerId && product.sellerId === user.id;
   // Buyable only once the vendor has set up payouts (so the order can auto-settle).
   const canBuy = !!ownerVendor?.acceptsPayments;
 
   return (
-    <div className="group relative flex flex-col border-2 border-border bg-card p-4 transition-colors hover:border-primary/50">
+    <div className="group relative flex flex-col bg-card p-4">
       <ProductDetailModal product={product} vendor={vendorRef} canBuy={canBuy} open={open} onClose={() => setOpen(false)} />
       {product.discount ? (
         <span className="absolute left-3 top-3 z-10 bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
@@ -232,7 +232,7 @@ export function ProductCard({ product }: { product: Product }) {
           {product.name}
         </button>
         {vendorRef ? (
-          <Link to={`/vendor/${vendorRef.id}`} className="mt-1 text-xs text-muted-foreground hover:text-primary">
+          <Link to={`/vendor/${vendorRef.slug}`} className="mt-1 text-xs text-muted-foreground hover:text-primary">
             by {vendorRef.name}
           </Link>
         ) : null}
@@ -283,7 +283,7 @@ export function ProductCard({ product }: { product: Product }) {
   );
 }
 
-export function VendorCard({ vendor }: { vendor: Vendor }) {
+export function VendorCard({ vendor, distanceKm }: { vendor: Vendor; distanceKm?: number }) {
   const navigate = useNavigate();
   const { data: user } = useCurrentUser();
   const startConversation = useStartConversation();
@@ -302,13 +302,20 @@ export function VendorCard({ vendor }: { vendor: Vendor }) {
   };
 
   return (
-    <div className="group flex flex-col border-2 border-border bg-card p-4 transition-colors hover:border-primary/50">
+    <div className="group flex h-full flex-col bg-card p-4">
       <MediaThumb icon={vendor.icon} tint={vendor.tint} imageUrl={vendor.imageUrl} alt={vendor.name} />
       <div className="mt-4 flex flex-1 flex-col">
         <h3 className="font-display text-base font-bold text-foreground">{vendor.name}</h3>
-        {vendor.area ? (
+        {vendor.area || distanceKm != null ? (
           <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5" /> {vendor.area}
+            <MapPin className="h-3.5 w-3.5" />
+            {vendor.area}
+            {distanceKm != null ? (
+              <span className="font-semibold text-primary">
+                {vendor.area ? " · " : ""}
+                {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : `${distanceKm.toFixed(1)} km`}
+              </span>
+            ) : null}
           </p>
         ) : null}
         <div className="mt-2 flex items-center gap-2">
@@ -324,9 +331,9 @@ export function VendorCard({ vendor }: { vendor: Vendor }) {
             ))}
           </div>
         ) : null}
-        <div className="mt-4 flex gap-2">
+        <div className="mt-auto flex gap-2 pt-4">
           <Link
-            to={`/vendor/${vendor.id}`}
+            to={`/vendor/${vendor.slug}`}
             className="flex-1 bg-primary py-2 text-center text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             View profile
@@ -336,7 +343,7 @@ export function VendorCard({ vendor }: { vendor: Vendor }) {
               type="button"
               onClick={onMessage}
               disabled={startConversation.isPending}
-              className="flex items-center justify-center border-2 border-border px-3 text-foreground transition-colors hover:border-primary/50 disabled:opacity-60"
+              className="hidden items-center justify-center border-2 border-border px-3 text-foreground transition-colors hover:border-primary/50 disabled:opacity-60 sm:flex"
               aria-label={`Message ${vendor.name}`}
             >
               <MessageCircle className="h-4 w-4" />

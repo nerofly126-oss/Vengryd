@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, ShoppingCart, MapPin, X, LogOut, Trash2 } from "lucide-react";
+import { Heart, ShoppingCart, MapPin, X, LogOut, Trash2, Navigation } from "lucide-react";
 import { useCategories, useProducts, useVendors } from "@/lib/catalog";
 import { ProductCard, VendorCard } from "@/components/catalog-cards";
 import { HotDealsPromo } from "@/components/HotDealsPromo";
 import { SearchBox } from "@/components/SearchBox";
 import { useCurrentUser, useSignOut, displayName, initials } from "@/lib/auth";
-import { useBuyerArea, areaMatches } from "@/lib/location";
+import { useBuyerArea, useBuyerCoords, getCurrentCoords, reverseGeocode, distanceKm, areaMatches } from "@/lib/location";
 import { toast } from "sonner";
 import { useCart, useWishlist, cartActions, wishlistActions, type StoreItem } from "@/lib/store";
 import { useCreateOrder } from "@/lib/orders";
@@ -197,12 +197,34 @@ const BuyerDashboard = () => {
   const name = displayName(user);
 
   const [area, setArea] = useBuyerArea();
+  const [coords, setCoords] = useBuyerCoords();
+  const [locating, setLocating] = useState(false);
   const [locOpen, setLocOpen] = useState(false);
   const [areaInput, setAreaInput] = useState(area);
+
+  const useMyLocation = async () => {
+    setLocating(true);
+    try {
+      const c = await getCurrentCoords();
+      setCoords(c);
+      // Distance ranking uses the coords; the readable name is just for display.
+      const place = await reverseGeocode(c);
+      if (place) {
+        setArea(place);
+        setAreaInput(place);
+      }
+      setLocOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't get your location.");
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const cart = useCart();
   const wishlist = useWishlist();
   const [drawer, setDrawer] = useState<"cart" | "wishlist" | null>(null);
+  const [vendorsExpanded, setVendorsExpanded] = useState(false);
 
   const { data: categories, isFetching: catFetching } = useCategories();
   const { data: products, isLoading: productsLoading, isFetching: prodFetching } = useProducts();
@@ -234,7 +256,17 @@ const BuyerDashboard = () => {
       (matches(v.name) || v.services.some(matches) || matches(catLabel(v.categoryId))),
   );
 
-  const nearbyVendors = vendors.filter((v) => areaMatches(v.area, area));
+  // With GPS: rank vendors that have coordinates by real distance, others after.
+  // Without GPS: filter to typed area, or show everything if no area is set yet.
+  const nearbyList: { vendor: typeof vendors[number]; km?: number }[] = coords
+    ? [
+        ...vendors
+          .filter((v) => v.lat != null && v.lng != null)
+          .map((v) => ({ vendor: v, km: distanceKm(coords, { lat: v.lat as number, lng: v.lng as number }) }))
+          .sort((a, b) => a.km - b.km),
+        ...vendors.filter((v) => v.lat == null || v.lng == null).map((v) => ({ vendor: v })),
+      ]
+    : (area ? vendors.filter((v) => areaMatches(v.area, area)) : vendors).map((v) => ({ vendor: v }));
 
   const hotDeals = products.filter((p) => p.isHotDeal);
   // Hot-deal products live in the Hot Deals section only — keep them out of the marketplace grid.
@@ -267,11 +299,25 @@ const BuyerDashboard = () => {
               className="flex items-center gap-1 whitespace-nowrap text-sm text-muted-foreground hover:text-foreground"
             >
               <MapPin className="h-4 w-4 text-primary" />
-              {area ? <span className="max-w-[10rem] truncate text-foreground">{area}</span> : "Set your area"}
+              {area ? (
+                <span className="max-w-[10rem] truncate text-foreground">{area}</span>
+              ) : coords ? (
+                <span className="text-foreground">Near you</span>
+              ) : (
+                "Set your area"
+              )}
             </button>
             {locOpen ? (
               <div className="absolute left-0 z-50 mt-2 w-64 rounded-none border-2 border-border bg-card p-3 shadow-[var(--shadow-card)]">
-                <p className="mb-2 text-xs text-muted-foreground">Show vendors in your area</p>
+                <button
+                  type="button"
+                  onClick={useMyLocation}
+                  disabled={locating}
+                  className="mb-2 flex w-full items-center justify-center gap-2 rounded-none bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                >
+                  <Navigation className="h-4 w-4" /> {locating ? "Locating…" : coords ? "Update my location" : "Use my location"}
+                </button>
+                <p className="mb-2 text-center text-[11px] text-muted-foreground">or set an area manually</p>
                 <input
                   value={areaInput}
                   onChange={(e) => setAreaInput(e.target.value)}
@@ -283,18 +329,20 @@ const BuyerDashboard = () => {
                     type="button"
                     onClick={() => {
                       setArea(areaInput);
+                      setCoords(null);
                       setLocOpen(false);
                     }}
                     className="flex-1 rounded-none bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
                   >
                     Save
                   </button>
-                  {area ? (
+                  {area || coords ? (
                     <button
                       type="button"
                       onClick={() => {
                         setArea("");
                         setAreaInput("");
+                        setCoords(null);
                         setLocOpen(false);
                       }}
                       className="rounded-none border-2 border-border px-3 text-sm hover:border-primary/50"
@@ -391,10 +439,25 @@ const BuyerDashboard = () => {
             className="mt-2 flex items-center gap-1 text-sm text-muted-foreground"
           >
             <MapPin className="h-4 w-4 text-primary" />
-            {area ? <span className="text-foreground">{area}</span> : "Set your area"}
+            {area ? (
+              <span className="text-foreground">{area}</span>
+            ) : coords ? (
+              <span className="text-foreground">Near you</span>
+            ) : (
+              "Set your area"
+            )}
           </button>
           {locOpen ? (
             <div className="mt-2 rounded-none border-2 border-border bg-card p-3">
+              <button
+                type="button"
+                onClick={useMyLocation}
+                disabled={locating}
+                className="mb-2 flex w-full items-center justify-center gap-2 rounded-none bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+              >
+                <Navigation className="h-4 w-4" /> {locating ? "Locating…" : coords ? "Update my location" : "Use my location"}
+              </button>
+              <p className="mb-2 text-center text-[11px] text-muted-foreground">or set an area manually</p>
               <input
                 value={areaInput}
                 onChange={(e) => setAreaInput(e.target.value)}
@@ -406,18 +469,20 @@ const BuyerDashboard = () => {
                   type="button"
                   onClick={() => {
                     setArea(areaInput);
+                    setCoords(null);
                     setLocOpen(false);
                   }}
                   className="flex-1 rounded-none bg-primary py-2 text-sm font-semibold text-primary-foreground"
                 >
                   Save
                 </button>
-                {area ? (
+                {area || coords ? (
                   <button
                     type="button"
                     onClick={() => {
                       setArea("");
                       setAreaInput("");
+                      setCoords(null);
                       setLocOpen(false);
                     }}
                     className="rounded-none border-2 border-border px-3 text-sm"
@@ -518,7 +583,7 @@ const BuyerDashboard = () => {
             </section>
 
             {/* Vendors near you */}
-            <section className="rounded-none border-2 border-border bg-card p-6">
+            <section>
               <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="font-display text-xl font-bold text-foreground">
                   Vendors {area ? `in ${area}` : "near you"}
@@ -529,11 +594,27 @@ const BuyerDashboard = () => {
               </div>
               {isLoading ? (
                 <p className="py-12 text-center text-sm text-muted-foreground">Loading vendors…</p>
-              ) : nearbyVendors.length > 0 ? (
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                  {nearbyVendors.slice(0, 8).map((v) => (
-                    <VendorCard key={v.id} vendor={v} />
-                  ))}
+              ) : nearbyList.length > 0 ? (
+                <div className="-mx-4 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6">
+                  <div className="flex gap-4">
+                    {(vendorsExpanded ? nearbyList : nearbyList.slice(0, 7)).map(({ vendor, km }) => (
+                      <div key={vendor.id} className="w-44 shrink-0 sm:w-52">
+                        <VendorCard vendor={vendor} distanceKm={km} />
+                      </div>
+                    ))}
+                    {!vendorsExpanded && nearbyList.length > 7 ? (
+                      <button
+                        type="button"
+                        onClick={() => setVendorsExpanded(true)}
+                        className="flex w-44 shrink-0 flex-col items-center justify-center gap-2 bg-secondary/40 p-4 text-center text-sm font-semibold text-primary transition-colors hover:bg-secondary sm:w-52"
+                      >
+                        View more vendors
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {nearbyList.length - 7} more
+                        </span>
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               ) : (
                 <p className="py-12 text-center text-sm text-muted-foreground">

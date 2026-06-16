@@ -1,7 +1,8 @@
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { MapPin, MessageCircle, Phone, Mail, Star } from "lucide-react";
+import { MapPin, MessageCircle, Phone, Mail, Star, Share2 } from "lucide-react";
 import { useVendor, useVendorProducts, useMyVendorRating, useRateVendor } from "@/lib/catalog";
 import { useStartConversation } from "@/lib/messaging";
+import { shareLink } from "@/lib/share";
 import { useCurrentUser } from "@/lib/auth";
 import { ProductCard, Stars } from "@/components/catalog-cards";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
@@ -29,7 +30,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           <Link to="/" className="font-display text-2xl font-black tracking-tight text-foreground">
             ven<span className="text-primary">gryd</span>
           </Link>
-          <Link to="/dashboard" className="text-sm font-semibold text-primary hover:underline">
+          <Link to="/marketplace" className="text-sm font-semibold text-primary hover:underline">
             Marketplace
           </Link>
         </div>
@@ -70,7 +71,7 @@ const VendorProfile = () => {
         ) : (
           <div className="py-20 text-center">
             <p className="text-sm text-muted-foreground">Vendor not found.</p>
-            <Link to="/dashboard" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
+            <Link to="/marketplace" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
               Back to marketplace
             </Link>
           </div>
@@ -123,41 +124,40 @@ const VendorProfile = () => {
           </div>
         </div>
 
-        {isOwner ? (
-          <Link
-            to="/messages"
-            className="flex items-center justify-center gap-2 rounded-xl border-2 border-border px-6 py-3 text-sm font-display font-bold uppercase tracking-tight text-foreground transition-colors hover:border-primary/50"
-          >
-            <MessageCircle className="h-4 w-4" /> Inbox
-          </Link>
-        ) : vendor.sellerId ? (
+        <div className="flex shrink-0 gap-2 sm:flex-col">
           <button
             type="button"
-            onClick={onMessage}
-            disabled={startConversation.isPending}
-            className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+            onClick={() => shareLink(`/vendor/${vendor.slug}`, vendor.name)}
+            className="flex items-center justify-center gap-2 rounded-xl border-2 border-border px-6 py-3 text-sm font-display font-bold uppercase tracking-tight text-foreground transition-colors hover:border-primary/50"
           >
-            <MessageCircle className="h-4 w-4" /> {startConversation.isPending ? "Opening…" : "Message"}
+            <Share2 className="h-4 w-4" /> Share
           </button>
-        ) : null}
+          {isOwner ? (
+            <Link
+              to="/seller/messages"
+              className="flex items-center justify-center gap-2 rounded-xl border-2 border-border px-6 py-3 text-sm font-display font-bold uppercase tracking-tight text-foreground transition-colors hover:border-primary/50"
+            >
+              <MessageCircle className="h-4 w-4" /> Inbox
+            </Link>
+          ) : vendor.sellerId ? (
+            <button
+              type="button"
+              onClick={onMessage}
+              disabled={startConversation.isPending}
+              className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+            >
+              <MessageCircle className="h-4 w-4" /> {startConversation.isPending ? "Opening…" : "Message"}
+            </button>
+          ) : null}
+        </div>
       </section>
 
       {/* Contact details */}
-      {vendor.phone || vendor.whatsapp || vendor.email ? (
+      {vendor.phone || vendor.email ? (
         <section className="mt-6 flex flex-wrap gap-3">
           {vendor.phone ? (
             <a href={`tel:${vendor.phone}`} className={contactBtn}>
               <Phone className="h-4 w-4 text-primary" /> {vendor.phone}
-            </a>
-          ) : null}
-          {vendor.whatsapp ? (
-            <a
-              href={`https://wa.me/${vendor.whatsapp.replace(/[^\d]/g, "")}`}
-              target="_blank"
-              rel="noreferrer"
-              className={contactBtn}
-            >
-              <MessageCircle className="h-4 w-4 text-primary" /> WhatsApp
             </a>
           ) : null}
           {vendor.email ? (

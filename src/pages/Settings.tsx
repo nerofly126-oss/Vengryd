@@ -12,7 +12,7 @@ const Settings = () => {
           <Link to="/" className="font-display text-2xl font-black tracking-tight text-foreground">
             ven<span className="text-primary">gryd</span>
           </Link>
-          <Link to="/dashboard" className="text-sm font-semibold text-primary hover:underline">
+          <Link to="/marketplace" className="text-sm font-semibold text-primary hover:underline">
             Marketplace
           </Link>
         </div>

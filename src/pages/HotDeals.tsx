@@ -15,7 +15,7 @@ const HotDeals = () => {
           <Link to="/" className="font-display text-2xl font-black tracking-tight text-foreground">
             ven<span className="text-primary">gryd</span>
           </Link>
-          <Link to="/dashboard" className="text-sm font-semibold text-primary hover:underline">
+          <Link to="/marketplace" className="text-sm font-semibold text-primary hover:underline">
             Marketplace
           </Link>
         </div>
@@ -44,7 +44,7 @@ const HotDeals = () => {
           <div className="border-2 border-dashed border-border py-20 text-center">
             <Flame className="mx-auto h-8 w-8 text-muted-foreground" />
             <p className="mt-3 text-sm text-muted-foreground">No hot deals right now — check back soon.</p>
-            <Link to="/dashboard" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
+            <Link to="/marketplace" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
               Back to marketplace
             </Link>
           </div>

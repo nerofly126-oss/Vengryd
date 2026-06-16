@@ -30,6 +30,8 @@ export type SellerVendor = {
   phone?: string | null;
   whatsapp?: string | null;
   email?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export type ProductRow = {
@@ -48,6 +50,7 @@ export type ProductRow = {
 
 export type VendorRow = {
   id: string;
+  slug: string | null;
   name: string;
   category_id: string | null;
   image_url: string | null;
@@ -56,6 +59,8 @@ export type VendorRow = {
   phone: string | null;
   whatsapp: string | null;
   contact_email: string | null;
+  lat: number | null;
+  lng: number | null;
 };
 
 async function requireUser(): Promise<User> {
@@ -164,7 +169,7 @@ export function useMyVendor() {
       const user = await requireUser();
       const { data, error } = await supabase
         .from("vendors")
-        .select("id, name, category_id, image_url, area, services, phone, whatsapp, contact_email")
+        .select("id, slug, name, category_id, image_url, area, services, phone, whatsapp, contact_email, lat, lng")
         .eq("seller_id", user.id)
         .maybeSingle();
       if (error) throw error;
@@ -190,6 +195,8 @@ export function useSaveVendor() {
         phone: input.phone ?? null,
         whatsapp: input.whatsapp ?? null,
         contact_email: input.email ?? null,
+        lat: input.lat ?? null,
+        lng: input.lng ?? null,
       };
 
       // One vendor profile per seller: update if it exists, otherwise insert.

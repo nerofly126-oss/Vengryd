@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/soner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,7 +16,7 @@ import SellerDashboard from "./pages/SellerDashboard.tsx";
 import VendorProfile from "./pages/VendorProfile.tsx";
 import HotDeals from "./pages/HotDeals.tsx";
 import Orders from "./pages/Orders.tsx";
-import Messages from "./pages/Messages.tsx";
+import MessagesPage from "./pages/Messages.tsx";
 import Settings from "./pages/Settings.tsx";
 import Terms from "./pages/Terms.tsx";
 import Privacy from "./pages/Privacy.tsx";
@@ -52,12 +52,14 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<BuyerDashboard />} />
+            <Route path="/marketplace" element={<BuyerDashboard />} />
+            <Route path="/dashboard" element={<Navigate to="/marketplace" replace />} />
             <Route path="/seller" element={<SellerDashboard />} />
             <Route path="/vendor/:id" element={<VendorProfile />} />
             <Route path="/deals" element={<HotDeals />} />
             <Route path="/orders" element={<Orders />} />
-            <Route path="/messages" element={<Messages />} />
+            <Route path="/messages" element={<MessagesPage role="buyer" />} />
+            <Route path="/seller/messages" element={<MessagesPage role="seller" />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />

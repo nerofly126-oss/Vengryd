@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { Trash2, Pencil, ImagePlus, Store, Package, MapPin, Coins, ShoppingBag, Boxes, Clock } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Trash2, Pencil, ImagePlus, Store, Package, MapPin, Coins, ShoppingBag, Boxes, Clock, Share2, Navigation } from "lucide-react";
+import { SellerNav } from "@/components/SellerNav";
+import { getCurrentCoords, reverseGeocode } from "@/lib/location";
 import { useCategories } from "@/lib/catalog";
 import {
   useCurrentUser,
@@ -14,6 +16,7 @@ import {
 } from "@/lib/seller";
 import { useSellerOrders, useToggleFulfilled, sellerStats } from "@/lib/orders";
 import { useBanks, useMyPayout, useSavePayout } from "@/lib/payout";
+import { shareLink } from "@/lib/share";
 
 const inputClass =
   "w-full rounded-none border-2 border-border bg-secondary/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none";
@@ -83,7 +86,12 @@ const SellerDashboard = () => {
   const productCats = categories.filter((c) => c.kind === "product");
   const serviceCats = categories.filter((c) => c.kind === "service");
 
-  const [tab, setTab] = useState<"overview" | "orders" | "products" | "profile">("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab") ?? "overview";
+  const tab: SellerTab = (["overview", "orders", "products", "profile"] as const).includes(tabParam as SellerTab)
+    ? (tabParam as SellerTab)
+    : "overview";
+  const setTab = (t: SellerTab) => setSearchParams({ tab: t });
 
   if (!user) {
     return (
@@ -99,7 +107,7 @@ const SellerDashboard = () => {
         >
           Sign in / Join
         </Link>
-        <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
+        <Link to="/marketplace" className="text-sm text-muted-foreground hover:text-foreground">
           Back to marketplace
         </Link>
       </div>
@@ -115,32 +123,17 @@ const SellerDashboard = () => {
             <span className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Seller</span>
           </Link>
           <nav className="flex items-center gap-5">
-            <Link to="/messages" className="text-sm font-semibold text-primary hover:underline">
-              Messages
-            </Link>
-            <Link to="/dashboard" className="text-sm font-semibold text-primary hover:underline">
+            <Link to="/marketplace" className="text-sm font-semibold text-primary hover:underline">
               View marketplace
             </Link>
           </nav>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        {/* Tabs */}
-        <div className="mb-8 flex gap-1 rounded-full border-2 border-border p-1">
-          {(["overview", "orders", "products", "profile"] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTab(t)}
-              className={`flex-1 rounded-full px-4 py-2 text-xs font-display font-semibold uppercase tracking-tight transition-colors sm:text-sm ${
-                tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t === "overview" ? "Overview" : t === "orders" ? "Orders" : t === "products" ? "Products" : "Profile"}
-            </button>
-          ))}
-        </div>
+      <main className="mx-auto max-w-5xl px-4 pb-28 pt-8 sm:px-6">
+        <h1 className="mb-6 font-display text-2xl font-black uppercase tracking-tighter sm:text-3xl">
+          {tab === "overview" ? "Overview" : tab === "orders" ? "Orders" : tab === "products" ? "My Products" : "My Profile"}
+        </h1>
 
         {tab === "overview" ? (
           <OverviewTab onSeeOrders={() => setTab("orders")} />
@@ -152,9 +145,13 @@ const SellerDashboard = () => {
           <ProfileTab serviceCats={serviceCats} />
         )}
       </main>
+
+      <SellerNav />
     </div>
   );
 };
+
+type SellerTab = "overview" | "orders" | "products" | "profile";
 
 const naira = (n: number) => `₦${n.toLocaleString()}`;
 
@@ -162,7 +159,7 @@ const naira = (n: number) => `₦${n.toLocaleString()}`;
 
 function StatCard({ icon: Icon, label, value }: { icon: typeof Coins; label: string; value: string }) {
   return (
-    <div className="rounded-none border-2 border-border bg-card p-5">
+    <div className="rounded-lg bg-secondary/40 p-5">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="h-4 w-4 text-primary" />
         <span className="text-xs font-semibold uppercase tracking-wide">{label}</span>
@@ -175,7 +172,9 @@ function StatCard({ icon: Icon, label, value }: { icon: typeof Coins; label: str
 function OverviewTab({ onSeeOrders }: { onSeeOrders: () => void }) {
   const { data: orders } = useSellerOrders();
   const { data: products } = useMyProducts();
+  const { data: vendor } = useMyVendor();
   const stats = sellerStats(orders);
+  const profilePath = vendor ? `/vendor/${vendor.slug ?? vendor.id}` : null;
 
   return (
     <div className="space-y-8">
@@ -186,7 +185,7 @@ function OverviewTab({ onSeeOrders }: { onSeeOrders: () => void }) {
         <StatCard icon={Clock} label="Pending" value={String(stats.pending)} />
       </div>
 
-      <div className="rounded-none border-2 border-border bg-card p-6">
+      <div className="border-t border-border pt-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-lg font-bold text-foreground">How you're doing</h2>
           <button type="button" onClick={onSeeOrders} className="text-sm font-semibold text-primary hover:underline">
@@ -207,6 +206,26 @@ function OverviewTab({ onSeeOrders }: { onSeeOrders: () => void }) {
           )}
         </p>
       </div>
+
+      {profilePath && vendor ? (
+        <div className="border-t border-border pt-6">
+          <h2 className="font-display text-lg font-bold text-foreground">Share your storefront</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Send buyers straight to your public profile.</p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <code className="flex-1 truncate rounded-none border-2 border-border bg-secondary/30 px-3 py-2.5 text-xs text-muted-foreground">
+              {window.location.origin}
+              {profilePath}
+            </code>
+            <button
+              type="button"
+              onClick={() => shareLink(profilePath, vendor.name)}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-none bg-primary px-5 py-2.5 text-sm font-display font-bold uppercase tracking-tight text-primary-foreground hover:bg-primary/90"
+            >
+              <Share2 className="h-4 w-4" /> Share
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -227,10 +246,10 @@ function OrdersTab() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {orders.map((o) => (
-        <div key={o.id} className="rounded-none border-2 border-border bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3">
+        <div key={o.id} className="border-b border-border pb-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
             <div>
               <p className="font-display text-sm font-bold text-foreground">Order #{o.id.slice(0, 8)}</p>
               <p className="text-xs text-muted-foreground">{new Date(o.createdAt).toLocaleDateString()}</p>
@@ -244,7 +263,7 @@ function OrdersTab() {
           </div>
           <ul className="divide-y divide-border">
             {o.items.map((it) => (
-              <li key={it.id} className="flex items-center justify-between gap-3 px-5 py-3">
+              <li key={it.id} className="flex items-center justify-between gap-3 py-2.5">
                 <div className="min-w-0">
                   <p className="truncate text-sm text-foreground">{it.name}</p>
                   <p className="text-xs text-muted-foreground">
@@ -345,7 +364,7 @@ function ProductsTab({
 
   if (!vendor?.area) {
     return (
-      <div className="rounded-none border-2 border-dashed border-border bg-card p-10 text-center">
+      <div className="py-16 text-center">
         <MapPin className="mx-auto h-8 w-8 text-primary" />
         <h2 className="mt-3 font-display text-lg font-bold">Set your location first</h2>
         <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
@@ -364,7 +383,7 @@ function ProductsTab({
 
   return (
     <div className="space-y-8">
-      <form onSubmit={submit} className="space-y-5 rounded-none border-2 border-border bg-card p-6">
+      <form onSubmit={submit} className="space-y-5">
         <h2 className="font-display text-lg font-bold">{form.id ? "Edit product" : "Add a product"}</h2>
         <ImageUploader imageUrl={form.imageUrl} onFile={setFile} label="Upload image" />
         <input className={inputClass} placeholder="Product name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -418,7 +437,7 @@ function ProductsTab({
         ) : (
           <div className="grid gap-3">
             {products.map((p) => (
-              <div key={p.id} className="flex items-center gap-4 rounded-none border-2 border-border bg-card p-3">
+              <div key={p.id} className="flex items-center gap-4 py-2">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-none bg-secondary/40">
                   {p.image_url ? <img src={p.image_url} alt="" className="h-full w-full object-cover" /> : <Package className="h-5 w-5 text-muted-foreground" />}
                 </div>
@@ -457,10 +476,13 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
     whatsapp: "",
     email: "",
     imageUrl: "" as string | null | undefined,
+    lat: null as number | null,
+    lng: null as number | null,
   });
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   useEffect(() => {
     if (vendor) {
@@ -474,9 +496,26 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
         whatsapp: vendor.whatsapp ?? "",
         email: vendor.contact_email ?? "",
         imageUrl: vendor.image_url,
+        lat: vendor.lat ?? null,
+        lng: vendor.lng ?? null,
       });
     }
   }, [vendor]);
+
+  const pinLocation = async () => {
+    setError("");
+    setLocating(true);
+    try {
+      const c = await getCurrentCoords();
+      const place = await reverseGeocode(c);
+      // Fill the area name from GPS if the seller hasn't typed one.
+      setForm((f) => ({ ...f, lat: c.lat, lng: c.lng, area: f.area.trim() ? f.area : place }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't get your location.");
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -499,6 +538,8 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
         whatsapp: form.whatsapp.trim() || null,
         email: form.email.trim() || null,
         imageUrl,
+        lat: form.lat,
+        lng: form.lng,
       });
       setSaved(true);
     } catch (err) {
@@ -508,7 +549,7 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
 
   return (
     <div className="space-y-6">
-    <form onSubmit={submit} className="space-y-5 rounded-none border-2 border-border bg-card p-6">
+    <form onSubmit={submit} className="space-y-5">
       <h2 className="font-display text-lg font-bold">Vendor profile</h2>
       <p className="text-sm text-muted-foreground">
         This is your public storefront — it shows to buyers when they browse your service category.
@@ -526,12 +567,28 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
       </div>
       <input className={inputClass} placeholder="Services (comma separated, e.g. Haircut, Beard trim)" value={form.services} onChange={(e) => setForm({ ...form, services: e.target.value })} />
 
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={pinLocation}
+          disabled={locating}
+          className="inline-flex items-center gap-2 rounded-none border-2 border-border px-4 py-2 text-sm font-semibold hover:border-primary/50 disabled:opacity-60"
+        >
+          <Navigation className="h-4 w-4 text-primary" />
+          {locating ? "Locating…" : form.lat != null ? "Update shop location" : "Pin my shop location (GPS)"}
+        </button>
+        {form.lat != null ? (
+          <span className="text-xs font-semibold text-accent">Location pinned ✓</span>
+        ) : (
+          <span className="text-xs text-muted-foreground">Lets buyers find you by distance</span>
+        )}
+      </div>
+
       <p className="pt-1 text-sm font-semibold text-foreground">Contact details</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <input className={inputClass} type="tel" placeholder="Phone (e.g. 0801 234 5678)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-        <input className={inputClass} type="tel" placeholder="WhatsApp number" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} />
+        <input className={inputClass} type="email" placeholder="Contact email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
       </div>
-      <input className={inputClass} type="email" placeholder="Contact email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {saved ? <p className="text-sm text-accent">Profile saved — buyers can now find you.</p> : null}
@@ -543,7 +600,7 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
     {vendor ? (
       <PayoutSection />
     ) : (
-      <div className="rounded-none border-2 border-dashed border-border p-6 text-sm text-muted-foreground">
+      <div className="border-t border-border pt-6 text-sm text-muted-foreground">
         Save your vendor profile first, then you can connect a payout account to start selling.
       </div>
     )}
@@ -585,7 +642,7 @@ function PayoutSection() {
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-none border-2 border-border bg-card p-6">
+    <form onSubmit={submit} className="space-y-4 border-t border-border pt-6">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg font-bold">Payouts</h2>
         {connected ? (

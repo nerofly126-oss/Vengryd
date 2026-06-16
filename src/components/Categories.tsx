@@ -56,7 +56,7 @@ const Categories = () => {
               transition={{ duration: 0.4, delay: i * 0.05 }}
             >
               <Link
-                to="/dashboard"
+                to="/marketplace"
                 className={`group relative flex h-full flex-col justify-end overflow-hidden bg-gradient-to-br ${cat.tint} p-5`}
               >
                 <img

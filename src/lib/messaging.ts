@@ -8,6 +8,7 @@ export type Message = {
   senderId: string;
   body: string;
   createdAt: string;
+  readAt: string | null;
 };
 
 export type Conversation = {
@@ -29,7 +30,6 @@ type ConversationRow = {
   buyer_id: string;
   seller_id: string;
   last_message_at: string;
-  vendors: { name: string | null; image_url: string | null } | null;
 };
 
 type MessageRow = {
@@ -38,6 +38,7 @@ type MessageRow = {
   sender_id: string;
   body: string;
   created_at: string;
+  read_at: string | null;
 };
 
 function mapMessage(row: MessageRow): Message {
@@ -47,6 +48,7 @@ function mapMessage(row: MessageRow): Message {
     senderId: row.sender_id,
     body: row.body,
     createdAt: row.created_at,
+    readAt: row.read_at ?? null,
   };
 }
 
@@ -64,10 +66,23 @@ export function useConversations() {
 
       const { data, error } = await supabase
         .from("conversations")
-        .select("id, vendor_id, buyer_id, seller_id, last_message_at, vendors(name, image_url)")
+        .select("id, vendor_id, buyer_id, seller_id, last_message_at")
         .order("last_message_at", { ascending: false });
       if (error) throw error;
-      const rows = (data ?? []) as unknown as ConversationRow[];
+      const rows = (data ?? []) as ConversationRow[];
+
+      // Resolve each conversation's vendor individually (embed was unreliable).
+      const vendorIds = Array.from(new Set(rows.map((r) => r.vendor_id)));
+      const vendorById = new Map<string, { name: string; imageUrl?: string }>();
+      if (vendorIds.length > 0) {
+        const { data: vrows } = await supabase
+          .from("vendors")
+          .select("id, name, image_url")
+          .in("id", vendorIds);
+        for (const v of (vrows ?? []) as { id: string; name: string | null; image_url: string | null }[]) {
+          vendorById.set(v.id, { name: v.name ?? "Vendor", imageUrl: v.image_url ?? undefined });
+        }
+      }
 
       // Resolve buyer display names (FK points at auth.users, so embed isn't available).
       const buyerIds = Array.from(new Set(rows.map((r) => r.buyer_id)));
@@ -82,16 +97,19 @@ export function useConversations() {
         }
       }
 
-      return rows.map((r) => ({
-        id: r.id,
-        vendorId: r.vendor_id,
-        buyerId: r.buyer_id,
-        sellerId: r.seller_id,
-        lastMessageAt: r.last_message_at,
-        vendorName: r.vendors?.name ?? "Vendor",
-        vendorImageUrl: r.vendors?.image_url ?? undefined,
-        buyerName: names.get(r.buyer_id) ?? "Buyer",
-      }));
+      return rows.map((r) => {
+        const v = vendorById.get(r.vendor_id);
+        return {
+          id: r.id,
+          vendorId: r.vendor_id,
+          buyerId: r.buyer_id,
+          sellerId: r.seller_id,
+          lastMessageAt: r.last_message_at,
+          vendorName: v?.name ?? "Vendor",
+          vendorImageUrl: v?.imageUrl,
+          buyerName: names.get(r.buyer_id) ?? "Buyer",
+        };
+      });
     },
     initialData: [],
   });
@@ -109,7 +127,7 @@ export function useMessages(conversationId?: string) {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase
         .from("messages")
-        .select("id, conversation_id, sender_id, body, created_at")
+        .select("id, conversation_id, sender_id, body, created_at, read_at")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -125,13 +143,20 @@ export function useMessages(conversationId?: string) {
       .channel(`messages:${conversationId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+        { event: "*", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
         (payload) => {
-          const incoming = mapMessage(payload.new as MessageRow);
+          if (payload.eventType === "DELETE") return;
+          const row = mapMessage(payload.new as MessageRow);
           qc.setQueryData<Message[]>(["messages", conversationId], (prev) => {
             const list = prev ?? [];
-            if (list.some((m) => m.id === incoming.id)) return list;
-            return [...list, incoming];
+            const idx = list.findIndex((m) => m.id === row.id);
+            if (idx >= 0) {
+              // UPDATE (e.g. read receipt) — replace in place.
+              const next = list.slice();
+              next[idx] = row;
+              return next;
+            }
+            return [...list, row];
           });
           void qc.invalidateQueries({ queryKey: ["conversations"] });
         },
@@ -144,6 +169,22 @@ export function useMessages(conversationId?: string) {
   }, [conversationId, qc]);
 
   return query;
+}
+
+/** Mark the other party's messages in a conversation as read. */
+export function useMarkRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (conversationId: string) => {
+      if (!isSupabaseConfigured()) return;
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.rpc("mark_messages_read", { p_conversation_id: conversationId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
 }
 
 /** Find or create the conversation between the current buyer and a vendor; returns its id. */
