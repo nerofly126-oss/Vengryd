@@ -124,6 +124,13 @@ export type Vendor = {
   acceptsPayments: boolean;
   lat?: number;
   lng?: number;
+  coverUrl?: string;
+  bio?: string;
+  tagline?: string;
+  verified: boolean;
+  socials: Record<string, string>;
+  hours: { open?: string; close?: string; days?: number[] };
+  createdAt?: string;
 };
 
 type CategoryRow = { id: string; label: string; icon: string | null; kind: string | null; product_count: number };
@@ -165,6 +172,13 @@ type VendorRow = {
   flw_subaccount_id: string | null;
   lat: number | null;
   lng: number | null;
+  cover_url: string | null;
+  bio: string | null;
+  tagline: string | null;
+  verified: boolean | null;
+  socials: Record<string, string> | null;
+  hours: { open?: string; close?: string; days?: number[] } | null;
+  created_at: string | null;
 };
 
 function mapCategory(row: CategoryRow): Category {
@@ -220,6 +234,13 @@ function mapVendor(row: VendorRow): Vendor {
     acceptsPayments: !!row.flw_subaccount_id,
     lat: row.lat ?? undefined,
     lng: row.lng ?? undefined,
+    coverUrl: row.cover_url ?? undefined,
+    bio: row.bio ?? undefined,
+    tagline: row.tagline ?? undefined,
+    verified: !!row.verified,
+    socials: row.socials ?? {},
+    hours: row.hours ?? {},
+    createdAt: row.created_at ?? undefined,
   };
 }
 
@@ -254,7 +275,7 @@ async function fetchVendors(): Promise<Vendor[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("vendors")
-    .select("id, slug, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email, flw_subaccount_id, lat, lng")
+    .select("id, slug, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email, flw_subaccount_id, lat, lng, cover_url, bio, tagline, verified, socials, hours, created_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return ((data ?? []) as VendorRow[]).map(mapVendor);
@@ -269,7 +290,7 @@ export function useVendor(id?: string) {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase
         .from("vendors")
-        .select("id, slug, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email, flw_subaccount_id, lat, lng")
+        .select("id, slug, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email, flw_subaccount_id, lat, lng, cover_url, bio, tagline, verified, socials, hours, created_at")
         .or(`slug.eq.${id},id.eq.${id}`)
         .limit(1)
         .maybeSingle();

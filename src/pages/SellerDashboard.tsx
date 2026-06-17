@@ -476,13 +476,28 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
     whatsapp: "",
     email: "",
     imageUrl: "" as string | null | undefined,
+    coverUrl: "" as string | null | undefined,
+    tagline: "",
+    bio: "",
+    instagram: "",
+    x: "",
+    facebook: "",
+    tiktok: "",
+    website: "",
+    open: "",
+    close: "",
+    days: [] as number[],
     lat: null as number | null,
     lng: null as number | null,
   });
   const [file, setFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [locating, setLocating] = useState(false);
+
+  const toggleDay = (d: number) =>
+    setForm((f) => ({ ...f, days: f.days.includes(d) ? f.days.filter((x) => x !== d) : [...f.days, d] }));
 
   useEffect(() => {
     if (vendor) {
@@ -496,6 +511,17 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
         whatsapp: vendor.whatsapp ?? "",
         email: vendor.contact_email ?? "",
         imageUrl: vendor.image_url,
+        coverUrl: vendor.cover_url,
+        tagline: vendor.tagline ?? "",
+        bio: vendor.bio ?? "",
+        instagram: vendor.socials?.instagram ?? "",
+        x: vendor.socials?.x ?? "",
+        facebook: vendor.socials?.facebook ?? "",
+        tiktok: vendor.socials?.tiktok ?? "",
+        website: vendor.socials?.website ?? "",
+        open: vendor.hours?.open ?? "",
+        close: vendor.hours?.close ?? "",
+        days: vendor.hours?.days ?? [],
         lat: vendor.lat ?? null,
         lng: vendor.lng ?? null,
       });
@@ -528,6 +554,24 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
     try {
       let imageUrl = form.imageUrl ?? null;
       if (file) imageUrl = await uploadImage(file, "profile");
+      let coverUrl = form.coverUrl ?? null;
+      if (coverFile) coverUrl = await uploadImage(coverFile, "profile");
+
+      const socials: Record<string, string> = {};
+      for (const [k, v] of Object.entries({
+        instagram: form.instagram,
+        x: form.x,
+        facebook: form.facebook,
+        tiktok: form.tiktok,
+        website: form.website,
+      })) {
+        if (v.trim()) socials[k] = v.trim();
+      }
+      const hours =
+        form.open && form.close && form.days.length
+          ? { open: form.open, close: form.close, days: [...form.days].sort((a, b) => a - b) }
+          : {};
+
       await save.mutateAsync({
         id: form.id,
         name: form.name.trim(),
@@ -538,6 +582,11 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
         whatsapp: form.whatsapp.trim() || null,
         email: form.email.trim() || null,
         imageUrl,
+        coverUrl,
+        tagline: form.tagline.trim() || null,
+        bio: form.bio.trim() || null,
+        socials,
+        hours,
         lat: form.lat,
         lng: form.lng,
       });
@@ -555,7 +604,9 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
         This is your public storefront — it shows to buyers when they browse your service category.
       </p>
       <ImageUploader imageUrl={form.imageUrl} onFile={setFile} label="Upload profile photo" />
+      <ImageUploader imageUrl={form.coverUrl} onFile={setCoverFile} label="Upload cover image" />
       <input className={inputClass} placeholder="Business / vendor name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+      <input className={inputClass} placeholder="Tagline (e.g. Photographer | Art Director)" value={form.tagline} onChange={(e) => setForm({ ...form, tagline: e.target.value })} />
       <div className="grid gap-4 sm:grid-cols-2">
         <select className={inputClass} value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
           <option value="">Select service category</option>
@@ -566,6 +617,12 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
         <input className={inputClass} placeholder="Area / location — required (e.g. Yaba, Lagos)" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} />
       </div>
       <input className={inputClass} placeholder="Services (comma separated, e.g. Haircut, Beard trim)" value={form.services} onChange={(e) => setForm({ ...form, services: e.target.value })} />
+      <textarea
+        className={`${inputClass} min-h-[5rem] resize-y`}
+        placeholder="About / bio — tell buyers about your business"
+        value={form.bio}
+        onChange={(e) => setForm({ ...form, bio: e.target.value })}
+      />
 
       <div className="flex flex-wrap items-center gap-3">
         <button
@@ -584,10 +641,42 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
         )}
       </div>
 
+      <div className="space-y-2">
+        <p className="pt-1 text-sm font-semibold text-foreground">Business hours</p>
+        <div className="flex flex-wrap gap-2">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => toggleDay(i)}
+              className={`h-9 w-9 rounded-full text-xs font-bold transition-colors ${
+                form.days.includes(i) ? "bg-primary text-primary-foreground" : "border-2 border-border text-muted-foreground"
+              }`}
+            >
+              {d[0]}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <input className={inputClass} type="time" value={form.open} onChange={(e) => setForm({ ...form, open: e.target.value })} />
+          <span className="text-sm text-muted-foreground">to</span>
+          <input className={inputClass} type="time" value={form.close} onChange={(e) => setForm({ ...form, close: e.target.value })} />
+        </div>
+      </div>
+
       <p className="pt-1 text-sm font-semibold text-foreground">Contact details</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <input className={inputClass} type="tel" placeholder="Phone (e.g. 0801 234 5678)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         <input className={inputClass} type="email" placeholder="Contact email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+      </div>
+
+      <p className="pt-1 text-sm font-semibold text-foreground">Social links</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <input className={inputClass} placeholder="Instagram (@handle or URL)" value={form.instagram} onChange={(e) => setForm({ ...form, instagram: e.target.value })} />
+        <input className={inputClass} placeholder="X / Twitter" value={form.x} onChange={(e) => setForm({ ...form, x: e.target.value })} />
+        <input className={inputClass} placeholder="Facebook" value={form.facebook} onChange={(e) => setForm({ ...form, facebook: e.target.value })} />
+        <input className={inputClass} placeholder="TikTok" value={form.tiktok} onChange={(e) => setForm({ ...form, tiktok: e.target.value })} />
+        <input className={inputClass} placeholder="Website" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
       </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}

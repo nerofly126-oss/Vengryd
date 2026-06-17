@@ -32,6 +32,11 @@ export type SellerVendor = {
   email?: string | null;
   lat?: number | null;
   lng?: number | null;
+  coverUrl?: string | null;
+  bio?: string | null;
+  tagline?: string | null;
+  socials?: Record<string, string>;
+  hours?: { open?: string; close?: string; days?: number[] };
 };
 
 export type ProductRow = {
@@ -61,6 +66,12 @@ export type VendorRow = {
   contact_email: string | null;
   lat: number | null;
   lng: number | null;
+  cover_url: string | null;
+  bio: string | null;
+  tagline: string | null;
+  verified: boolean | null;
+  socials: Record<string, string> | null;
+  hours: { open?: string; close?: string; days?: number[] } | null;
 };
 
 async function requireUser(): Promise<User> {
@@ -169,7 +180,7 @@ export function useMyVendor() {
       const user = await requireUser();
       const { data, error } = await supabase
         .from("vendors")
-        .select("id, slug, name, category_id, image_url, area, services, phone, whatsapp, contact_email, lat, lng")
+        .select("id, slug, name, category_id, image_url, area, services, phone, whatsapp, contact_email, lat, lng, cover_url, bio, tagline, verified, socials, hours")
         .eq("seller_id", user.id)
         .maybeSingle();
       if (error) throw error;
@@ -197,6 +208,11 @@ export function useSaveVendor() {
         contact_email: input.email ?? null,
         lat: input.lat ?? null,
         lng: input.lng ?? null,
+        cover_url: input.coverUrl ?? null,
+        bio: input.bio ?? null,
+        tagline: input.tagline ?? null,
+        socials: input.socials ?? {},
+        hours: input.hours ?? {},
       };
 
       // One vendor profile per seller: update if it exists, otherwise insert.
