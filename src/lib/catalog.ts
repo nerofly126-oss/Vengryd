@@ -1,3 +1,4 @@
+// Catalog data layer: types, row→model mappers, and React Query hooks for categories, products, vendors and vendor ratings (live Supabase data).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Laptop,
@@ -71,6 +72,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   stethoscope: Stethoscope,
 };
 
+// Resolves a DB icon name to its lucide component, defaulting to a generic Package icon.
 const iconFor = (name: string | null | undefined) => ICON_MAP[name ?? ""] ?? Package;
 
 export type CategoryKind = "product" | "service";
@@ -119,7 +121,7 @@ export type Vendor = {
   phone?: string;
   whatsapp?: string;
   email?: string;
-  /** Flutterwave subaccount id — present once the vendor has set up payouts. */
+  /** Paystack subaccount id — present once the vendor has set up payouts. */
   subaccountId?: string;
   acceptsPayments: boolean;
   lat?: number;
@@ -181,6 +183,7 @@ type VendorRow = {
   created_at: string | null;
 };
 
+// Maps a DB category row to the Category model (resolves icon, normalises kind).
 function mapCategory(row: CategoryRow): Category {
   return {
     id: row.id,
@@ -191,6 +194,7 @@ function mapCategory(row: CategoryRow): Category {
   };
 }
 
+// Maps a DB product row to the Product model (coerces numeric strings, applies defaults).
 function mapProduct(row: ProductRow): Product {
   return {
     id: row.id,
@@ -213,6 +217,7 @@ function mapProduct(row: ProductRow): Product {
   };
 }
 
+// Maps a DB vendor row to the Vendor model; acceptsPayments derives from presence of a Paystack subaccount.
 function mapVendor(row: VendorRow): Vendor {
   return {
     id: row.id,
@@ -246,6 +251,7 @@ function mapVendor(row: VendorRow): Vendor {
 
 /* ---------------- Queries (live Supabase data only) ---------------- */
 
+// Fetches all categories ordered by sort; returns [] when Supabase isn't configured.
 async function fetchCategories(): Promise<Category[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = getSupabaseClient();
@@ -257,6 +263,7 @@ async function fetchCategories(): Promise<Category[]> {
   return ((data ?? []) as CategoryRow[]).map(mapCategory);
 }
 
+// Fetches all products, newest first; returns [] when Supabase isn't configured.
 async function fetchProducts(): Promise<Product[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = getSupabaseClient();
@@ -270,6 +277,7 @@ async function fetchProducts(): Promise<Product[]> {
   return ((data ?? []) as ProductRow[]).map(mapProduct);
 }
 
+// Fetches all vendors, newest first; returns [] when Supabase isn't configured.
 async function fetchVendors(): Promise<Vendor[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = getSupabaseClient();
@@ -281,6 +289,7 @@ async function fetchVendors(): Promise<Vendor[]> {
   return ((data ?? []) as VendorRow[]).map(mapVendor);
 }
 
+/** A single vendor looked up by slug or id (disabled until id is provided); null if not found. */
 export function useVendor(id?: string) {
   return useQuery({
     queryKey: ["vendor", id],
@@ -301,6 +310,7 @@ export function useVendor(id?: string) {
   });
 }
 
+/** Products belonging to a given seller, newest first (disabled until sellerId is provided). */
 export function useVendorProducts(sellerId?: string | null) {
   return useQuery({
     queryKey: ["vendor-products", sellerId],
@@ -322,14 +332,17 @@ export function useVendorProducts(sellerId?: string | null) {
   });
 }
 
+/** All catalog categories. */
 export function useCategories() {
   return useQuery({ queryKey: ["catalog-categories"], queryFn: fetchCategories, initialData: [] });
 }
 
+/** All catalog products. */
 export function useProducts() {
   return useQuery({ queryKey: ["catalog-products"], queryFn: fetchProducts, initialData: [] });
 }
 
+/** All catalog vendors. */
 export function useVendors() {
   return useQuery({ queryKey: ["catalog-vendors"], queryFn: fetchVendors, initialData: [] });
 }
@@ -361,6 +374,7 @@ export function useMyVendorRating(vendorId?: string) {
   });
 }
 
+/** Upserts the signed-in buyer's rating for a vendor (one per buyer); requires auth, invalidates vendor caches. */
 export function useRateVendor(vendorId?: string) {
   const qc = useQueryClient();
   return useMutation({

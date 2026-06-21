@@ -18,9 +18,14 @@ import { useSellerOrders, useToggleFulfilled, sellerStats } from "@/lib/orders";
 import { useBanks, useMyPayout, useSavePayout } from "@/lib/payout";
 import { shareLink } from "@/lib/share";
 
+// Seller dashboard page (route: /seller) — tabbed workspace where vendors manage their
+// overview stats, orders, product listings, public profile, and payout account.
+
+// Shared input styling reused across every form field on this page.
 const inputClass =
   "w-full rounded-none border-2 border-border bg-secondary/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none";
 
+// Blank product form state used to reset the add/edit product form.
 const emptyProduct = {
   id: undefined as string | undefined,
   name: "",
@@ -35,6 +40,8 @@ const emptyProduct = {
   imageUrl: "" as string | null | undefined,
 };
 
+// File-picker with a thumbnail preview. Shows the existing `imageUrl` until a new file
+// is chosen, then displays a local object-URL preview and bubbles the File up via `onFile`.
 function ImageUploader({
   imageUrl,
   onFile,
@@ -80,6 +87,11 @@ function ImageUploader({
   );
 }
 
+/**
+ * Seller dashboard shell (route: /seller). Gates on auth — unauthenticated visitors get a
+ * sign-in prompt. The active tab is driven by the `?tab=` query param (overview | orders |
+ * products | profile) and renders the matching sub-tab component below the header.
+ */
 const SellerDashboard = () => {
   const { data: user } = useCurrentUser();
   const { data: categories } = useCategories();
@@ -153,10 +165,12 @@ const SellerDashboard = () => {
 
 type SellerTab = "overview" | "orders" | "products" | "profile";
 
+// Formats a number as Nigerian Naira (e.g. 1500 -> "₦1,500").
 const naira = (n: number) => `₦${n.toLocaleString()}`;
 
 /* ---------------- Overview tab ---------------- */
 
+// Single metric tile (icon + label + value) used in the overview stats grid.
 function StatCard({ icon: Icon, label, value }: { icon: typeof Coins; label: string; value: string }) {
   return (
     <div className="rounded-lg bg-secondary/40 p-5">
@@ -169,6 +183,8 @@ function StatCard({ icon: Icon, label, value }: { icon: typeof Coins; label: str
   );
 }
 
+// Overview tab: revenue/orders/units/pending stats (derived from seller orders via
+// sellerStats), a fulfilment summary, and a shareable link to the public storefront.
 function OverviewTab({ onSeeOrders }: { onSeeOrders: () => void }) {
   const { data: orders } = useSellerOrders();
   const { data: products } = useMyProducts();
@@ -232,6 +248,8 @@ function OverviewTab({ onSeeOrders }: { onSeeOrders: () => void }) {
 
 /* ---------------- Orders tab ---------------- */
 
+// Orders tab: lists incoming orders for this seller and lets them toggle each line
+// item's fulfilled status (cancelled orders are read-only).
 function OrdersTab() {
   const { data: orders } = useSellerOrders();
   const toggle = useToggleFulfilled();
@@ -293,6 +311,9 @@ function OrdersTab() {
 
 /* ---------------- Products tab ---------------- */
 
+// Products tab: add/edit/delete product listings. Requires the vendor to have set an area
+// first (otherwise prompts to the profile tab). Uploads images to Supabase storage and
+// persists rows via useSaveProduct/useDeleteProduct.
 function ProductsTab({
   productCats,
   onRequireLocation,
@@ -309,12 +330,14 @@ function ProductsTab({
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
 
+  // Clears the product form back to its blank state.
   const reset = () => {
     setForm({ ...emptyProduct });
     setFile(null);
     setError("");
   };
 
+  // Loads an existing product row into the form for editing and scrolls to the top.
   const editRow = (p: ProductRow) => {
     setForm({
       id: p.id,
@@ -333,6 +356,7 @@ function ProductsTab({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Validates required fields, uploads any new image, then saves the product (create or update).
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -462,6 +486,9 @@ function ProductsTab({
 
 /* ---------------- Profile tab ---------------- */
 
+// Profile tab: the seller's public storefront editor — identity, photos, category, area,
+// services, bio, GPS pin, business hours, contact details, and social links. Hydrates from
+// the existing vendor row and saves via useSaveVendor. Renders PayoutSection once a vendor exists.
 function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string }[] }) {
   const { data: vendor } = useMyVendor();
   const save = useSaveVendor();
@@ -496,9 +523,11 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
   const [saved, setSaved] = useState(false);
   const [locating, setLocating] = useState(false);
 
+  // Adds/removes a weekday (0=Sun..6=Sat) from the open-days list.
   const toggleDay = (d: number) =>
     setForm((f) => ({ ...f, days: f.days.includes(d) ? f.days.filter((x) => x !== d) : [...f.days, d] }));
 
+  // Hydrate the form from the loaded vendor row whenever it arrives/changes.
   useEffect(() => {
     if (vendor) {
       setForm({
@@ -528,6 +557,7 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
     }
   }, [vendor]);
 
+  // Captures GPS coords for the shop and auto-fills the area name if none was typed.
   const pinLocation = async () => {
     setError("");
     setLocating(true);
@@ -543,6 +573,8 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
     }
   };
 
+  // Validates required fields, uploads profile/cover images, normalizes socials + hours,
+  // then persists the vendor profile.
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -699,6 +731,71 @@ function ProfileTab({ serviceCats }: { serviceCats: { id: string; label: string 
 
 /* ---------------- Payouts ---------------- */
 
+// Searchable bank picker (the Nigerian bank list is long). Shows the selected bank name,
+// opens a filtered dropdown on focus, and selects via onMouseDown so the click beats blur.
+function BankPicker({
+  banks,
+  value,
+  onChange,
+  loading,
+}: {
+  banks: { code: string; name: string }[];
+  value: string;
+  onChange: (code: string) => void;
+  loading: boolean;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const selected = banks.find((b) => b.code === value);
+  const q = query.trim().toLowerCase();
+  const matches = (q ? banks.filter((b) => b.name.toLowerCase().includes(q)) : banks).slice(0, 60);
+
+  return (
+    <div className="relative">
+      <input
+        className={inputClass}
+        value={open ? query : selected?.name ?? ""}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => {
+          setOpen(true);
+          setQuery("");
+        }}
+        onBlur={() => setOpen(false)}
+        placeholder={loading ? "Loading banks…" : "Search your bank…"}
+        disabled={loading}
+      />
+      {open ? (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-none border-2 border-border bg-card shadow-[var(--shadow-card)]">
+          {matches.length > 0 ? (
+            matches.map((b) => (
+              <button
+                key={b.code}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(b.code);
+                  setQuery("");
+                  setOpen(false);
+                }}
+                className="block w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-secondary"
+              >
+                {b.name}
+              </button>
+            ))
+          ) : (
+            <p className="px-4 py-3 text-sm text-muted-foreground">No banks match "{query}".</p>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Payout setup: lets a vendor connect a bank account (creating a Paystack subaccount)
+// so buyers can pay them. Hydrates from any saved payout and validates a 10-digit account number.
 function PayoutSection() {
   const { data: payout } = useMyPayout();
   const banks = useBanks(true);
@@ -716,6 +813,7 @@ function PayoutSection() {
 
   const connected = !!payout?.subaccountId;
 
+  // Validates bank + account number and saves the payout details (verified server-side).
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -741,7 +839,7 @@ function PayoutSection() {
         )}
       </div>
       <p className="text-sm text-muted-foreground">
-        Add your bank account so buyers can pay you. Sales are auto-settled to this account via Flutterwave, minus a
+        Add your bank account so buyers can pay you. Sales are auto-settled to this account via Paystack, minus a
         10% platform fee. Buyers can't purchase your products until this is connected.
       </p>
       {connected && payout?.accountName ? (
@@ -750,19 +848,7 @@ function PayoutSection() {
         </p>
       ) : null}
 
-      <select
-        className={inputClass}
-        value={bankCode}
-        onChange={(e) => setBankCode(e.target.value)}
-        disabled={banks.isFetching}
-      >
-        <option value="">{banks.isFetching ? "Loading banks…" : "Select your bank"}</option>
-        {banks.data.map((b) => (
-          <option key={b.code} value={b.code}>
-            {b.name}
-          </option>
-        ))}
-      </select>
+      <BankPicker banks={banks.data ?? []} value={bankCode} onChange={setBankCode} loading={banks.isFetching} />
       <input
         className={inputClass}
         inputMode="numeric"

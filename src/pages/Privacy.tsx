@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
 
+// Privacy Policy page (route: /privacy) — static legal copy for the marketplace.
+
+// Shared legal-page layout: header, title with last-updated date, and a content slot.
 function LegalShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background font-body text-foreground">
@@ -22,6 +25,7 @@ function LegalShell({ title, children }: { title: string; children: React.ReactN
   );
 }
 
+// Titled content block for one numbered privacy section.
 function Section({ heading, children }: { heading: string; children: React.ReactNode }) {
   return (
     <section>
@@ -31,6 +35,7 @@ function Section({ heading, children }: { heading: string; children: React.React
   );
 }
 
+/** Privacy page: renders the Privacy Policy sections inside LegalShell. */
 const Privacy = () => {
   return (
     <LegalShell title="Privacy Policy">

@@ -1,3 +1,4 @@
+// Seller payout setup: hooks to list banks, read saved payout details, and create a Paystack subaccount — all via the "paystack" edge function.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
@@ -13,16 +14,15 @@ export type MyPayout = {
 /** Nigerian bank list (proxied through the edge function, which holds the secret key). */
 export function useBanks(enabled: boolean) {
   return useQuery({
-    queryKey: ["flw-banks"],
+    queryKey: ["paystack-banks"],
     enabled: enabled && isSupabaseConfigured(),
     staleTime: 1000 * 60 * 60,
     queryFn: async (): Promise<Bank[]> => {
       const supabase = getSupabaseClient();
-      const { data, error } = await supabase.functions.invoke("flutterwave", { body: { action: "banks" } });
+      const { data, error } = await supabase.functions.invoke("paystack", { body: { action: "banks" } });
       if (error) throw error;
       return ((data as { banks?: Bank[] })?.banks ?? []).sort((a, b) => a.name.localeCompare(b.name));
     },
-    initialData: [],
   });
 }
 
@@ -55,12 +55,13 @@ export function useMyPayout() {
   });
 }
 
+/** Creates/updates the seller's Paystack subaccount from bank + account number via the edge function; invalidates payout and vendor caches. */
 export function useSavePayout() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ bankCode, accountNumber }: { bankCode: string; accountNumber: string }) => {
       const supabase = getSupabaseClient();
-      const { data, error } = await supabase.functions.invoke("flutterwave", {
+      const { data, error } = await supabase.functions.invoke("paystack", {
         body: { action: "subaccount", bankCode, accountNumber },
       });
       if (error) throw error;

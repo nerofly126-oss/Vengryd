@@ -1,3 +1,6 @@
+// Decorative fixed leaf graphics anchored in each viewport corner with a gentle sway.
+
+// Decorative leaf-shaped SVG (translucent fill + veins); `className` controls size/orientation.
 const LeafSVG = ({ className }: { className?: string }) => (
   <svg
     className={className}
@@ -33,6 +36,7 @@ const LeafSVG = ({ className }: { className?: string }) => (
   </svg>
 );
 
+// Places four mirrored, swaying LeafSVG instances fixed in the page corners (purely decorative).
 const LeafCorners = () => {
   return (
     <>

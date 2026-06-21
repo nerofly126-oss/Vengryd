@@ -1,3 +1,4 @@
+// Orders data layer: hooks for buyers (create/list orders) and sellers (list orders, fulfilment, stats); server-side triggers fill seller_id/name/price.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 import { type StoreItem } from "@/lib/store";
@@ -182,6 +183,7 @@ export function orderProgressLabel(order: BuyerOrder): string {
   return "Awaiting vendor";
 }
 
+/** Sets the fulfilled flag on a single order line item; invalidates the seller-orders cache. */
 export function useToggleFulfilled() {
   const qc = useQueryClient();
   return useMutation({

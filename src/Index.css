@@ -243,10 +243,10 @@
     linear-gradient(120deg, transparent 20%, hsl(38 30% 92% / 0.08) 48%, transparent 70%);
 }
 
-/* Desktop: floating rounded pill. Mobile stays full-bleed end-to-end. */
+/* Desktop: floating rounded bar. Mobile stays full-bleed end-to-end. */
 @media (min-width: 768px) {
   .navbar-shell {
-    border: 1px solid hsl(38 30% 92% / 0.08);
+    border: 1px solid hsl(var(--border));
     border-radius: 1.5rem;
   }
 }
@@ -370,21 +370,16 @@
   transform: translateY(-1px);
 }
 
-.liquid-button {
+.btn {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border: 1px solid hsl(38 30% 92% / 0.1);
+  border: 2px solid hsl(var(--border));
   border-radius: 999px;
-  background:
-    linear-gradient(180deg, hsl(38 30% 92% / 0.14), hsl(38 30% 92% / 0.04)),
-    hsl(150 5% 11% / 0.42);
+  background: hsl(var(--secondary));
   color: hsl(var(--foreground));
-  backdrop-filter: blur(22px) saturate(150%);
-  -webkit-backdrop-filter: blur(22px) saturate(150%);
-  box-shadow: inset 0 1px 0 hsl(38 30% 92% / 0.16);
   transition:
     transform 180ms ease,
     background-color 180ms ease,
@@ -392,66 +387,67 @@
     color 180ms ease;
 }
 
-.liquid-button::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(120deg, hsl(38 30% 92% / 0.16), transparent 40%, transparent 60%, hsl(38 30% 92% / 0.08));
-  opacity: 0.7;
+.btn::before {
+  display: none;
 }
 
-.liquid-button:hover {
+.btn:hover {
   transform: translateY(-1px);
-  border-color: hsl(38 30% 92% / 0.14);
-  background:
-    linear-gradient(180deg, hsl(38 30% 92% / 0.18), hsl(38 30% 92% / 0.05)),
-    hsl(150 5% 11% / 0.5);
+  border-color: hsl(var(--primary) / 0.5);
 }
 
-.liquid-button:focus-visible {
+.btn:focus-visible {
   outline: 2px solid hsl(var(--ring) / 0.4);
   outline-offset: 2px;
 }
 
-.liquid-button:disabled {
+.btn:disabled {
   opacity: 0.55;
 }
 
-.liquid-button-primary {
-  color: hsl(var(--foreground));
-  background:
-    linear-gradient(180deg, hsl(142 56% 45% / 0.22), hsl(142 56% 45% / 0.08)),
-    hsl(150 5% 11% / 0.4);
+.btn-primary {
+  border-color: transparent;
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
 }
 
-.liquid-button-soft {
-  background:
-    linear-gradient(180deg, hsl(38 30% 92% / 0.1), hsl(38 30% 92% / 0.03)),
-    hsl(150 5% 11% / 0.35);
+.btn-primary:hover {
+  border-color: transparent;
+  background: hsl(var(--primary) / 0.9);
 }
 
-.liquid-button-icon {
+.btn-soft {
+  background: hsl(var(--secondary));
+}
+
+/* Cream button with a tint of grey — stands out on the dark hero. */
+.btn-cream {
+  border-color: hsl(40 10% 70% / 0.6);
+  color: hsl(150 8% 12%);
+  background: linear-gradient(180deg, hsl(42 38% 93%), hsl(40 10% 80%));
+}
+
+.btn-cream:hover {
+  border-color: hsl(40 10% 65% / 0.7);
+  background: linear-gradient(180deg, hsl(42 40% 95%), hsl(40 10% 78%));
+}
+
+.btn-icon {
   width: 2.5rem;
   height: 2.5rem;
   padding: 0;
 }
 
-.liquid-segmented {
+.segmented {
   display: flex;
   gap: 0.4rem;
   padding: 0.35rem;
   border: 1px solid hsl(38 30% 92% / 0.08);
   border-radius: 999px;
-  background:
-    linear-gradient(180deg, hsl(38 30% 92% / 0.08), hsl(38 30% 92% / 0.03)),
-    hsl(150 5% 11% / 0.3);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: hsl(var(--secondary));
 }
 
-.liquid-segment {
+.segment {
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
@@ -462,12 +458,12 @@
     border-color 180ms ease;
 }
 
-.liquid-segment:hover {
+.segment:hover {
   color: hsl(var(--foreground));
   background: hsl(38 30% 92% / 0.05);
 }
 
-.liquid-segment[data-active="true"] {
+.segment[data-active="true"] {
   border-color: hsl(38 30% 92% / 0.12);
   background:
     linear-gradient(180deg, hsl(38 30% 92% / 0.14), hsl(38 30% 92% / 0.04)),
@@ -543,7 +539,7 @@
   animation: spin-slow 32s linear infinite;
 }
 
-/* ---------------- Light-mode glass variants (default :root = light) ---------------- */
+/* ---------------- Light-mode variants (default :root = light) ---------------- */
 html:not(.dark) .navbar-shell {
   border-bottom: 1px solid hsl(150 28% 24% / 0.08);
   background:
@@ -554,20 +550,10 @@ html:not(.dark) .navbar-shell {
     0 18px 40px hsl(150 30% 22% / 0.12);
 }
 
-@media (min-width: 768px) {
-  html:not(.dark) .navbar-shell {
-    border: 1px solid hsl(150 28% 24% / 0.1);
-  }
-}
-
 html:not(.dark) .navbar-shell::before {
   background:
     radial-gradient(circle at top left, hsl(150 28% 24% / 0.06), transparent 28%),
     linear-gradient(120deg, transparent 20%, hsl(150 28% 24% / 0.04) 48%, transparent 70%);
-}
-
-html:not(.dark) .navbar-desktop-link:hover {
-  background: hsl(150 28% 24% / 0.06);
 }
 
 html:not(.dark) .navbar-mobile-panel {
@@ -578,61 +564,14 @@ html:not(.dark) .navbar-mobile-panel {
   box-shadow: 0 20px 45px hsl(150 30% 22% / 0.14);
 }
 
+html:not(.dark) .navbar-desktop-link:hover {
+  background: hsl(150 28% 24% / 0.06);
+}
+
 html:not(.dark) .navbar-mobile-link {
   background: hsl(150 28% 24% / 0.03);
 }
 
-html:not(.dark) .liquid-button {
-  border: 1px solid hsl(150 28% 24% / 0.12);
-  background:
-    linear-gradient(180deg, hsl(150 28% 24% / 0.06), hsl(150 28% 24% / 0.02)),
-    hsl(42 52% 99% / 0.65);
-  box-shadow: inset 0 1px 0 hsl(42 52% 99% / 0.6);
-}
-
-html:not(.dark) .liquid-button::before {
-  opacity: 0.25;
-}
-
-html:not(.dark) .liquid-button:hover {
-  border-color: hsl(150 28% 24% / 0.18);
-  background:
-    linear-gradient(180deg, hsl(150 28% 24% / 0.1), hsl(150 28% 24% / 0.03)),
-    hsl(42 52% 99% / 0.82);
-}
-
-html:not(.dark) .liquid-button-primary {
-  color: hsl(44 50% 96%);
-  border-color: hsl(142 52% 28% / 0.4);
-  background: linear-gradient(180deg, hsl(142 52% 42%), hsl(142 54% 35%));
-  box-shadow: inset 0 1px 0 hsl(44 50% 96% / 0.22);
-}
-
-html:not(.dark) .liquid-button-primary:hover {
-  background: linear-gradient(180deg, hsl(142 54% 46%), hsl(142 56% 38%));
-}
-
-html:not(.dark) .liquid-button-soft {
-  background:
-    linear-gradient(180deg, hsl(150 28% 24% / 0.05), hsl(150 28% 24% / 0.02)),
-    hsl(42 52% 99% / 0.7);
-}
-
-html:not(.dark) .liquid-segmented {
-  border: 1px solid hsl(150 28% 24% / 0.1);
-  background:
-    linear-gradient(180deg, hsl(150 28% 24% / 0.05), hsl(150 28% 24% / 0.02)),
-    hsl(42 52% 99% / 0.6);
-}
-
-html:not(.dark) .liquid-segment:hover {
-  background: hsl(150 28% 24% / 0.05);
-}
-
-html:not(.dark) .liquid-segment[data-active="true"] {
-  border-color: hsl(150 28% 24% / 0.12);
-  background:
-    linear-gradient(180deg, hsl(142 52% 42% / 0.16), hsl(142 52% 42% / 0.06)),
-    hsl(42 52% 99% / 0.7);
+html:not(.dark) .segment[data-active="true"] {
   color: hsl(var(--foreground));
 }

@@ -22,10 +22,14 @@ import { useCurrentUser } from "@/lib/auth";
 import { ProductCard, Stars } from "@/components/catalog-cards";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
 
+// Public vendor storefront page (route: /vendor/:id) — shows a vendor's profile, hours,
+// contact links, services, ratings, and products; owners get edit/inbox shortcuts.
+
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 type Hours = { open?: string; close?: string; days?: number[] };
 
+// Returns true/false if the vendor is currently open per their hours, or null if hours aren't set.
 function isOpenNow(h: Hours): boolean | null {
   if (!h?.open || !h?.close || !h?.days?.length) return null;
   const now = new Date();
@@ -36,12 +40,14 @@ function isOpenNow(h: Hours): boolean | null {
   return mins >= oh * 60 + om && mins <= ch * 60 + cm;
 }
 
+// Builds a readable "Mon, Tue · 09:00–17:00" hours string, or null if hours aren't set.
 function hoursLabel(h: Hours): string | null {
   if (!h?.open || !h?.close || !h?.days?.length) return null;
   const days = [...h.days].sort((a, b) => a - b).map((d) => DAY_LABELS[d]).join(", ");
   return `${days} · ${h.open}–${h.close}`;
 }
 
+// Social-platform registry: maps each key to its icon and a URL builder for handle-only values.
 const SOCIALS: { key: string; icon: typeof Globe; base: (v: string) => string }[] = [
   { key: "instagram", icon: Instagram, base: (v) => `https://instagram.com/${v.replace(/^@/, "")}` },
   { key: "x", icon: Twitter, base: (v) => `https://x.com/${v.replace(/^@/, "")}` },
@@ -50,6 +56,8 @@ const SOCIALS: { key: string; icon: typeof Globe; base: (v: string) => string }[
   { key: "website", icon: Globe, base: (v) => `https://${v.replace(/^https?:\/\//i, "")}` },
 ];
 
+// Resolves a stored social value to a safe https URL (rebuilds non-URL values to block
+// dangerous schemes like javascript:).
 function socialHref(key: string, val: string): string {
   const v = val.trim();
   // Only http(s) full URLs pass through directly; everything else is rebuilt into a
@@ -59,6 +67,7 @@ function socialHref(key: string, val: string): string {
   return s ? s.base(v) : `https://${v}`;
 }
 
+// Interactive 1–5 star rating control; calls `onPick` with the chosen star count.
 function RateStars({ value, onPick }: { value: number; onPick: (n: number) => void }) {
   return (
     <div className="flex items-center gap-1">
@@ -76,6 +85,7 @@ const contactBtn =
 
 const sectionHeading = "font-display text-lg font-bold text-foreground";
 
+// Page chrome (sticky header + centered main) wrapping the vendor profile content.
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background font-body text-foreground">
@@ -94,6 +104,12 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * VendorProfile page (route: /vendor/:id). Loads a vendor (by id or slug) and their products
+ * from Supabase, computes owner status (current user === vendor.sellerId), open/closed state,
+ * and visible socials. Owners see edit/inbox controls; visitors can rate (auth-gated) and start
+ * a conversation, which creates/opens a chat thread and navigates to /messages.
+ */
 const VendorProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -106,6 +122,7 @@ const VendorProfile = () => {
 
   const isOwner = !!user && !!vendor?.sellerId && vendor.sellerId === user.id;
 
+  // Starts (or reopens) a conversation with this vendor and routes to it; redirects to /auth if signed out.
   const onMessage = () => {
     if (!user) {
       navigate("/auth");

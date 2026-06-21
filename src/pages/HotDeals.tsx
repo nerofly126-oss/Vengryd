@@ -4,6 +4,12 @@ import { useProducts } from "@/lib/catalog";
 import { ProductCard } from "@/components/catalog-cards";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
 
+// Hot Deals page (route: /hot-deals) — grid of all products flagged as hot deals.
+
+/**
+ * HotDeals page: fetches the full catalog via useProducts, filters to products with
+ * `isHotDeal`, and renders them as a ProductCard grid (loader/empty states otherwise).
+ */
 const HotDeals = () => {
   const { data: products, isFetching } = useProducts();
   const deals = products.filter((p) => p.isHotDeal);

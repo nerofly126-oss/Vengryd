@@ -1,3 +1,5 @@
+// Landing-page "Shop by category" section: an animated asymmetrical mosaic of
+// category tiles that each link to the marketplace.
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import foodImg from "@/assets/categories/food.jpeg";
@@ -34,12 +36,13 @@ const spans = [
   "", // Stylists
 ];
 
+// Renders the category mosaic; tiles fade/slide in on scroll and `spans` controls their layout.
 const Categories = () => {
   return (
     <section className="py-20 md:py-28">
       <div className="container">
-        <div className="mb-12">
-          <span className="eyebrow-kicker mb-4">Explore</span>
+        <div className="mb-12 md:ml-auto md:text-right">
+          <span className="eyebrow-kicker mb-4 md:flex-row-reverse">Explore</span>
           <h2 className="font-editorial text-4xl font-semibold tracking-tight sm:text-6xl">
             Shop by <span className="italic text-primary">category</span>
           </h2>

@@ -1,3 +1,4 @@
+import { useLayoutEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import FeatureBlocks from "@/components/FeatureBlocks";
@@ -7,7 +8,27 @@ import ShowcaseBanner from "@/components/ShowcaseBanner";
 import Footer from "@/components/Footer";
 import LeafCorners from "@/components/Leafcorners";
 
+// Public marketing landing page (route: /) — composes the home page from section components.
+
+/**
+ * Index page: the marketing home page. Renders an ambient background plus the landing
+ * sections in order (Navbar, Hero, FeatureBlocks, Categories, HowItWorks, ShowcaseBanner,
+ * Footer); #categories and #how anchors support in-page nav scrolling.
+ *
+ * The landing is always shown in dark mode regardless of the user's theme: while mounted
+ * it forces the `dark` class on <html> and restores the previous state on unmount, without
+ * touching the saved theme preference.
+ */
 const Index = () => {
+  useLayoutEffect(() => {
+    const html = document.documentElement;
+    const wasDark = html.classList.contains("dark");
+    html.classList.add("dark");
+    return () => {
+      if (!wasDark) html.classList.remove("dark");
+    };
+  }, []);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       {/* Continuous ambient backdrop */}

@@ -6,8 +6,16 @@ import LeafCorners from "@/components/Leafcorners";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 import { ensureProfile } from "@/lib/profile";
 
+// Auth page (route: /auth) — Supabase-backed login, signup, and password-reset flows for the marketplace.
+
 type AuthMode = "login" | "signup" | "reset";
 
+/**
+ * Auth page: single screen that switches between login / signup / reset via `mode`.
+ * Reads `mode` and OAuth `error`/`error_description` from the URL query, runs live
+ * username-availability checks during signup, listens to Supabase auth-state changes,
+ * and redirects to /marketplace once a session exists (ensuring a profile row first).
+ */
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -22,6 +30,7 @@ const Auth = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Kicks off Supabase Google OAuth; on success the browser redirects away, so only errors are handled here.
   const signInWithGoogle = async () => {
     if (!authConfigured) {
       setErrorMessage("Authentication is not configured.");
@@ -52,12 +61,14 @@ const Auth = () => {
     password: "",
   });
 
+  // Surface any OAuth error passed back in the URL.
   useEffect(() => {
     if (authError) {
       setErrorMessage(authError);
     }
   }, [authError]);
 
+  // Switch to reset mode when arriving via a password-recovery link (?mode=reset).
   useEffect(() => {
     if (queryMode === "reset") {
       setMode("reset");
@@ -94,6 +105,8 @@ const Auth = () => {
     return () => window.clearTimeout(timer);
   }, [form.username, mode]);
 
+  // Session bootstrap + auth listener: redirects authenticated users to /marketplace
+  // (after ensuring a profile row), and flips into reset mode on PASSWORD_RECOVERY events.
   useEffect(() => {
     if (!authConfigured) {
       return;
@@ -169,15 +182,18 @@ const Auth = () => {
       ? "Log in to your vengryd account."
       : "Join vengryd to start trading locally.";
 
+  // Controlled-input handler: updates the matching field in `form` by input name.
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((current) => ({ ...current, [e.target.name]: e.target.value }));
   };
 
+  // Clears any visible error/success banners.
   const resetMessages = () => {
     setErrorMessage("");
     setSuccessMessage("");
   };
 
+  // Returns the Supabase client, throwing a friendly error if env vars aren't set.
   const getAuthClient = () => {
     if (!authConfigured) {
       throw new Error("Authentication is not configured yet. Add your Supabase env vars to enable sign in.");
@@ -186,12 +202,15 @@ const Auth = () => {
     return getSupabaseClient();
   };
 
+  // Toggles between the login/signup tabs (reset mode is entered only via recovery link).
   const setVisibleMode = (nextMode: Exclude<AuthMode, "reset">) => {
     resetMessages();
     setMode(nextMode);
   };
 
 
+  // Main form submit: signs up, logs in, or updates the password depending on `mode`.
+  // Handles already-registered detection, email-confirmation flows, and ensures a profile row.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     resetMessages();
@@ -292,6 +311,7 @@ const Auth = () => {
     }
   };
 
+  // Sends a Supabase password-reset email that links back to /auth?mode=reset.
   const handleForgotPassword = async () => {
     resetMessages();
 

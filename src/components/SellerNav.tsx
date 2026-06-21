@@ -1,13 +1,14 @@
+// Fixed bottom tab bar for the seller area (overview/orders/products + messages + settings).
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { LayoutGrid, ShoppingBag, Package, Store, MessageCircle } from "lucide-react";
+import { LayoutGrid, ShoppingBag, Package, Settings, MessageCircle } from "lucide-react";
 
 const TABS = [
   { tab: "overview", label: "Overview", icon: LayoutGrid },
   { tab: "orders", label: "Orders", icon: ShoppingBag },
   { tab: "products", label: "Products", icon: Package },
-  { tab: "profile", label: "Profile", icon: Store },
 ] as const;
 
+// Builds the className for a tab cell, highlighting it in primary color when `active`.
 function cell(active: boolean) {
   return `flex flex-1 flex-col items-center gap-1 pb-2 pt-1.5 text-[11px] font-semibold transition-colors ${
     active ? "text-primary" : "text-muted-foreground hover:text-foreground"
@@ -21,6 +22,7 @@ export function SellerNav() {
   const onSeller = location.pathname === "/seller";
   const currentTab = params.get("tab") ?? "overview";
   const messagesActive = location.pathname === "/seller/messages";
+  const settingsActive = onSeller && currentTab === "profile";
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-border bg-card/95 backdrop-blur">
@@ -39,6 +41,12 @@ export function SellerNav() {
           <span className={`h-0.5 w-8 rounded-full ${messagesActive ? "bg-primary" : "bg-transparent"}`} />
           <MessageCircle className="h-5 w-5" strokeWidth={messagesActive ? 2.4 : 1.8} />
           Messages
+        </Link>
+        {/* Settings = the vendor profile editor (sits after Messages). */}
+        <Link to="/seller?tab=profile" className={cell(settingsActive)}>
+          <span className={`h-0.5 w-8 rounded-full ${settingsActive ? "bg-primary" : "bg-transparent"}`} />
+          <Settings className="h-5 w-5" strokeWidth={settingsActive ? 2.4 : 1.8} />
+          Settings
         </Link>
       </div>
     </nav>

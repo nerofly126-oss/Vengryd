@@ -1,9 +1,16 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 
+// 404 page (route: catch-all "*") — shown for any unmatched URL.
+
+/**
+ * NotFound page: renders a 404 message with a link home, and logs the attempted
+ * (unmatched) pathname to the console for debugging.
+ */
 const NotFound = () => {
   const location = useLocation();
 
+  // Log the missing route whenever the path changes.
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
   }, [location.pathname]);

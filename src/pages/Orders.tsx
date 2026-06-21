@@ -4,14 +4,19 @@ import { useCurrentUser } from "@/lib/auth";
 import { useMyOrders, orderProgressLabel, type BuyerOrder } from "@/lib/orders";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
 
+// Buyer order-history page (route: /orders) — lists the signed-in user's past orders and their status.
+
+// Formats a number as Nigerian Naira (e.g. 1500 -> "₦1,500").
 const naira = (n: number) => `₦${n.toLocaleString()}`;
 
+// Maps a progress label to its Tailwind text-colour class (destructive / primary / muted).
 function statusClass(label: string) {
   if (label === "Cancelled") return "text-destructive";
   if (label.startsWith("Ready")) return "text-primary";
   return "text-muted-foreground";
 }
 
+// Page chrome (header + centered main) wrapping the orders content.
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background font-body text-foreground">
@@ -30,6 +35,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Card for one order: header (id, date, total, overall status) plus a per-item list with fulfilled/pending badges.
 function OrderCard({ order }: { order: BuyerOrder }) {
   const label = orderProgressLabel(order);
   return (
@@ -67,6 +73,10 @@ function OrderCard({ order }: { order: BuyerOrder }) {
   );
 }
 
+/**
+ * Orders page (route: /orders). Auth-gated — prompts sign-in when signed out. Otherwise fetches
+ * the current user's orders via useMyOrders and renders them as OrderCards (or an empty state).
+ */
 const Orders = () => {
   const { data: user } = useCurrentUser();
   const { data: orders, isFetching } = useMyOrders();
@@ -88,7 +98,8 @@ const Orders = () => {
     <Shell>
       <h1 className="mb-2 font-display text-3xl font-black uppercase tracking-tighter">My Orders</h1>
       <p className="mb-6 text-sm text-muted-foreground">
-        Track your orders here. Payment and delivery are arranged directly with each vendor for now.
+        You paid securely at checkout — each vendor is notified automatically. Arrange delivery or pickup with the
+        vendor via Messages or their contact details.
       </p>
 
       {orders.length > 0 ? (

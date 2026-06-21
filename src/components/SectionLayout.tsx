@@ -1,9 +1,12 @@
+// Shared page shell for static/content pages: ambient backdrop, navbar, footer,
+// decorative leaf corners, and a "Back to home" link around the page `children`.
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import LeafCorners from "@/components/Leafcorners";
 
+// Wraps `children` in the standard chrome (Navbar, Footer, LeafCorners) and ambient background.
 const SectionLayout = ({ children }: { children: ReactNode }) => {
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
@@ -21,7 +24,7 @@ const SectionLayout = ({ children }: { children: ReactNode }) => {
           <div className="container flex justify-center pb-16 pt-8">
             <Link
               to="/"
-              className="liquid-button liquid-button-soft px-6 py-3 font-display font-semibold uppercase tracking-tight"
+              className="btn btn-soft px-6 py-3 font-display font-semibold uppercase tracking-tight"
             >
               Back to home
             </Link>

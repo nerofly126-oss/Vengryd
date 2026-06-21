@@ -1,3 +1,4 @@
+// Landing-page full-bleed image banner with a scroll-revealed headline.
 import { motion } from "framer-motion";
 import bannerImg from "@/assets/landing/showcase.jpeg";
 

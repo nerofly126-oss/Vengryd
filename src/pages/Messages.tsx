@@ -7,10 +7,15 @@ import { useCurrentUser } from "@/lib/auth";
 import { SellerNav } from "@/components/SellerNav";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
 
+// Messaging page (routes: /messages for buyers, /seller/messages for sellers) — conversation
+// list plus an active chat thread, backed by Supabase via the messaging hooks.
+
+// Formats an ISO timestamp as a short local time (e.g. "09:41").
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+// Page chrome (header with back button + marketplace link); shows the seller bottom nav when navInset is set.
 function Shell({ children, navInset }: { children: React.ReactNode; navInset?: boolean }) {
   const navigate = useNavigate();
   return (
@@ -41,11 +46,13 @@ function Shell({ children, navInset }: { children: React.ReactNode; navInset?: b
   );
 }
 
+// Returns the other party's display name relative to the current user (buyer name if I'm the seller, else vendor name).
 function partyLabel(c: Conversation, userId: string) {
   // If I'm the seller, the other party is the buyer; otherwise it's the vendor.
   return c.sellerId === userId ? c.buyerName : c.vendorName;
 }
 
+// Round avatar that shows an image when available, otherwise the name's first initial.
 function Avatar({ url, name, size = "h-9 w-9" }: { url?: string; name: string; size?: string }) {
   return (
     <div className={`${size} shrink-0 overflow-hidden rounded-full bg-secondary`}>
@@ -60,6 +67,8 @@ function Avatar({ url, name, size = "h-9 w-9" }: { url?: string; name: string; s
   );
 }
 
+// Single chat thread: streams messages for `conversation`, auto-scrolls to the latest,
+// marks the other party's messages read while open, and sends new messages (restoring text on error).
 function Thread({
   conversation,
   userId,
@@ -90,6 +99,7 @@ function Thread({
     if (messages.some((m) => m.senderId !== userId && !m.readAt)) markRead(conversation.id);
   }, [conversation.id, messages, userId, markRead]);
 
+  // Sends the trimmed message body, optimistically clearing the input and restoring it on failure.
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const body = text.trim();
@@ -176,6 +186,11 @@ function Thread({
   );
 }
 
+/**
+ * Messages page used for both buyer (/messages) and seller (/seller/messages) inboxes via `role`.
+ * Auth-gated. Shows a role-filtered conversation list plus the selected thread (chosen via the
+ * `?c=` query param); on mobile it shows the list first and opens a thread full-screen.
+ */
 const MessagesPage = ({ role }: { role: "buyer" | "seller" }) => {
   const { data: user } = useCurrentUser();
   const { data: conversations, isFetching } = useConversations();

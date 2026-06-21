@@ -1,3 +1,4 @@
+// Link sharing helper: uses the Web Share API when available, otherwise copies to clipboard with a toast.
 import { toast } from "sonner";
 
 /** Share a path within the app — uses the native share sheet when available, else copies the link. */

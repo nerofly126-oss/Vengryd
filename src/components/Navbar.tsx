@@ -1,7 +1,9 @@
+// Fixed top navigation bar with a desktop link row and an animated mobile dropdown menu.
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 
+// Motion-wrapped router Link so mobile menu items can use framer-motion variants.
 const MotionLink = motion(Link);
 
 const mobileLinks = [
@@ -49,6 +51,7 @@ const mobileItemVariants = {
   },
 };
 
+// Renders the navbar; `open` toggles the animated mobile menu (hamburger). Desktop links jump to page anchors.
 const Navbar = () => {
   const [open, setOpen] = useState(false);
 
@@ -71,7 +74,7 @@ const Navbar = () => {
               </a>
               <Link
                 to="/marketplace"
-                className="liquid-button liquid-button-primary ml-3 px-5 py-2 text-sm font-display font-semibold"
+                className="btn btn-primary ml-3 px-5 py-2 text-sm font-display font-semibold"
               >
                 View Marketplace
               </Link>
@@ -117,7 +120,7 @@ const Navbar = () => {
                   <Link
                     to="/marketplace"
                     onClick={() => setOpen(false)}
-                    className="liquid-button liquid-button-primary px-5 py-2.5 text-sm font-display font-semibold"
+                    className="btn btn-primary px-5 py-2.5 text-sm font-display font-semibold"
                   >
                     View Marketplace
                   </Link>

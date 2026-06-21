@@ -1,3 +1,5 @@
+// Landing-page hero: full-bleed background image with a staggered animated headline,
+// subcopy, and shop/sell call-to-action buttons.
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/welcome-bg.webp";
@@ -47,13 +49,13 @@ const Hero = () => {
         >
           <Link
             to="/marketplace"
-            className="liquid-button liquid-button-primary px-8 py-4 text-base font-display font-semibold sm:text-lg"
+            className="btn btn-cream px-5 py-2.5 text-sm font-display font-semibold"
           >
             Shop the marketplace
           </Link>
           <Link
             to="/seller"
-            className="liquid-button liquid-button-soft px-8 py-4 text-base font-display font-medium sm:text-lg"
+            className="btn btn-soft px-5 py-2.5 text-sm font-display font-medium"
           >
             Start selling
           </Link>

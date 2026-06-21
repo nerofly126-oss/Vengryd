@@ -1,3 +1,4 @@
+// Site footer: navigation link columns, shop/sell CTAs, and the oversized brand wordmark.
 import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 
@@ -34,6 +35,7 @@ const columns: { heading: string; links: FooterLink[] }[] = [
 
 const linkClass = "text-sm text-muted-foreground transition-colors hover:text-foreground";
 
+// Renders one footer link as an internal <Link> (when `to` is set) or an external <a> (when `href` is set).
 function FooterItem({ link }: { link: FooterLink }) {
   if (link.to) {
     return (
@@ -49,6 +51,7 @@ function FooterItem({ link }: { link: FooterLink }) {
   );
 }
 
+// Renders the footer layout from the `columns` data plus CTAs and copyright.
 const Footer = () => {
   return (
     <footer className="relative overflow-hidden bg-card">

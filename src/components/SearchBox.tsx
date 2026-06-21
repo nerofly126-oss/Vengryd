@@ -1,3 +1,4 @@
+// Reusable search input with a live product/vendor typeahead dropdown.
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, X } from "lucide-react";

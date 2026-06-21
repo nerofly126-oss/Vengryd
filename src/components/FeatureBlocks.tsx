@@ -1,3 +1,4 @@
+// Landing-page alternating image/text feature blocks ("For buyers" / "For sellers").
 import { motion } from "framer-motion";
 import buyersImg from "@/assets/landing/buyers.jpeg";
 import sellersImg from "@/assets/landing/sellers.jpeg";
@@ -34,6 +35,7 @@ const blocks: Block[] = [
   },
 ];
 
+// Maps the `blocks` data to scroll-revealed two-column rows; `reversed` swaps image/text order.
 const FeatureBlocks = () => {
   return (
     <section className="py-16 md:py-24">

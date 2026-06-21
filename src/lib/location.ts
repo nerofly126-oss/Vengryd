@@ -1,3 +1,4 @@
+// Location utilities: localStorage-backed buyer area/coords hooks, geolocation + reverse geocoding, and distance/area matching helpers.
 import { useState } from "react";
 
 const AREA_KEY = "vengryd-area";

@@ -14,6 +14,9 @@ import { useCreateOrder } from "@/lib/orders";
 import { startPayment, verifyPayment, isPaymentsConfigured, type SplitSubaccount } from "@/lib/payments";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
 
+// Slide-in drawer showing either the cart or the wishlist (selected via `open`).
+// For the cart it computes the subtotal, builds a per-vendor payment split, and runs
+// the Paystack checkout: creates an order, starts/verifies payment, then clears the cart.
 function CartDrawer({
   open,
   onClose,
@@ -32,7 +35,8 @@ function CartDrawer({
   const items = open === "cart" ? cart : wishlist;
   const subtotal = cart.reduce((sum, i) => sum + i.price, 0);
 
-  // One subaccount per distinct vendor in the cart, split by each vendor's subtotal.
+  // One subaccount per distinct vendor in the cart. Each vendor's `share` is 90% of their
+  // subtotal in kobo (the platform keeps the remaining 10% as the main account).
   // Returns null if any item's vendor isn't payout-enabled (shouldn't happen — gated at add-to-cart).
   const buildSplit = (): SplitSubaccount[] | null => {
     const bySubaccount = new Map<string, number>();
@@ -43,14 +47,14 @@ function CartDrawer({
       if (!subId) return null;
       bySubaccount.set(subId, (bySubaccount.get(subId) ?? 0) + item.price);
     }
-    return Array.from(bySubaccount.entries()).map(([id, amount]) => ({
-      id,
-      transaction_split_ratio: amount,
-      transaction_charge_type: "percentage",
-      transaction_charge: 0.1,
+    return Array.from(bySubaccount.entries()).map(([subaccount, naira]) => ({
+      subaccount,
+      share: Math.round(naira * 0.9 * 100),
     }));
   };
 
+  // Checkout flow: gates on auth + payments config, builds the split, creates the order,
+  // launches payment, verifies it, then clears the cart and routes to /orders on success.
   const checkout = async () => {
     if (!user) {
       onClose();
@@ -70,17 +74,16 @@ function CartDrawer({
     try {
       const orderId = await createOrder.mutateAsync(cart);
       const payment = await startPayment({
-        txRef: orderId,
-        amount: subtotal,
+        reference: orderId,
+        amount: Math.round(subtotal * 100), // Paystack amounts are in kobo
         email: user.email ?? "",
-        name: displayName(user),
         subaccounts,
       });
       if (!payment) {
         toast("Payment cancelled — your order is saved as unpaid.");
         return;
       }
-      const paid = await verifyPayment(orderId, payment.transaction_id ?? "");
+      const paid = await verifyPayment(orderId, payment.reference ?? orderId);
       if (paid) {
         cartActions.clear();
         toast.success("Payment successful — your order is in!");
@@ -188,6 +191,13 @@ function CartDrawer({
   );
 }
 
+/**
+ * Buyer-facing marketplace home (route: /marketplace). Renders the header (search,
+ * location picker, cart/wishlist, account menu) and the storefront: hot-deals promo,
+ * featured products, and location-ranked nearby vendors. Switching the search query
+ * flips the body into a filtered results view. Cart/wishlist live in the global store;
+ * catalog data comes from Supabase via the useCategories/useProducts/useVendors hooks.
+ */
 const BuyerDashboard = () => {
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -202,6 +212,8 @@ const BuyerDashboard = () => {
   const [locOpen, setLocOpen] = useState(false);
   const [areaInput, setAreaInput] = useState(area);
 
+  // Requests browser GPS, stores the coords for distance ranking, and reverse-geocodes
+  // them into a readable area name for display.
   const useMyLocation = async () => {
     setLocating(true);
     try {
@@ -273,6 +285,7 @@ const BuyerDashboard = () => {
   const featured = products.filter((p) => p.isFeatured && !p.isHotDeal);
   const isLoading = productsLoading || vendorsLoading;
 
+  // Exits search/browse mode and returns to the default storefront.
   const clearBrowse = () => {
     setQuery("");
   };

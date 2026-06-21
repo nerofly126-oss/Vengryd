@@ -1,3 +1,5 @@
+// Shared product/vendor card UI: star ratings, image thumbnails, a product detail
+// modal, and the product/vendor cards used across the marketplace and dashboards.
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,6 +9,7 @@ import { useCart, useWishlist, cartActions, wishlistActions, type StoreItem } fr
 import { useStartConversation } from "@/lib/messaging";
 import { useCurrentUser } from "@/lib/auth";
 
+/** Renders a 5-star row, filling `rating` stars (0–5) in amber and the rest muted. */
 export function Stars({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-0.5">
@@ -20,6 +23,10 @@ export function Stars({ rating }: { rating: number }) {
   );
 }
 
+/**
+ * Square media thumbnail for a product/vendor. Shows `imageUrl` when present;
+ * otherwise falls back to a tinted gradient with the given Lucide icon.
+ */
 export function MediaThumb({
   icon: Icon,
   tint,
@@ -45,6 +52,7 @@ export function MediaThumb({
   );
 }
 
+// Maps a catalog Product to the lighter StoreItem shape used by the cart/wishlist stores.
 function toItem(product: Product): StoreItem {
   return {
     id: product.id,
@@ -55,6 +63,9 @@ function toItem(product: Product): StoreItem {
   };
 }
 
+// Animated full-screen modal showing a product's details with add-to-cart and favourite
+// actions. Disables buying when it's the user's own product or the vendor can't accept
+// payments (canBuy); unauthenticated buyers are redirected to /auth.
 function ProductDetailModal({
   product,
   vendor,
@@ -183,6 +194,11 @@ function ProductDetailModal({
   );
 }
 
+/**
+ * Marketplace product card: thumbnail, name, vendor link, rating, price, stock/sold
+ * progress and an add-to-cart button. Clicking the image/name opens ProductDetailModal.
+ * Buying is gated on the owning vendor having payments enabled (acceptsPayments).
+ */
 export function ProductCard({ product }: { product: Product }) {
   const navigate = useNavigate();
   const { data: user } = useCurrentUser();
@@ -283,6 +299,11 @@ export function ProductCard({ product }: { product: Product }) {
   );
 }
 
+/**
+ * Vendor card: thumbnail, name, area + optional `distanceKm`, rating, service tags,
+ * a profile link and (for claimed vendors that aren't the viewer's own) a message
+ * button that starts/opens a conversation.
+ */
 export function VendorCard({ vendor, distanceKm }: { vendor: Vendor; distanceKm?: number }) {
   const navigate = useNavigate();
   const { data: user } = useCurrentUser();
@@ -291,6 +312,7 @@ export function VendorCard({ vendor, distanceKm }: { vendor: Vendor; distanceKm?
   // Messaging only works for vendors claimed by a seller (sellerId set).
   const canMessage = !!vendor.sellerId && !isOwner;
 
+  // Starts (or reuses) a conversation with the vendor, then navigates to the thread.
   const onMessage = () => {
     if (!user) {
       navigate("/auth");

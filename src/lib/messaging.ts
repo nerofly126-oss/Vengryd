@@ -1,3 +1,4 @@
+// Buyer↔seller messaging: React Query hooks for conversations and messages, with a Supabase realtime subscription for live updates.
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
@@ -41,6 +42,7 @@ type MessageRow = {
   read_at: string | null;
 };
 
+// Maps a DB message row to the Message model.
 function mapMessage(row: MessageRow): Message {
   return {
     id: row.id,
@@ -222,6 +224,7 @@ export function useStartConversation() {
   });
 }
 
+/** Sends a (trimmed, non-empty) message in a conversation as the current user; requires auth, invalidates message/conversation caches. */
 export function useSendMessage(conversationId?: string) {
   const qc = useQueryClient();
   return useMutation({

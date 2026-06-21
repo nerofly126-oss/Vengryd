@@ -1,3 +1,4 @@
+// Waitlist signup: inserts an email into the waitlist table and triggers a confirmation email edge function.
 import { getSupabaseClient } from "@/lib/supabase";
 
 const waitlistTable = import.meta.env.VITE_SUPABASE_WAITLIST_TABLE || "waitlist_signups";
@@ -9,6 +10,10 @@ type JoinWaitlistResult = {
   emailFailed: boolean;
 };
 
+/**
+ * Adds a normalized email to the waitlist and invokes the confirmation-email function.
+ * Treats a unique/duplicate insert as alreadyJoined; reports emailFailed if the email function errored.
+ */
 export async function joinWaitlist(email: string): Promise<JoinWaitlistResult> {
   const normalizedEmail = email.trim().toLowerCase();
 

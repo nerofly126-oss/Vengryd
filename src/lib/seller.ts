@@ -1,3 +1,4 @@
+// Seller workspace data layer: image uploads to Supabase storage plus hooks to manage the seller's own products and single vendor profile (RLS-scoped to the user).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
@@ -74,6 +75,7 @@ export type VendorRow = {
   hours: { open?: string; close?: string; days?: number[] } | null;
 };
 
+// Returns the signed-in Supabase user or throws — used to gate all seller writes.
 async function requireUser(): Promise<User> {
   const supabase = getSupabaseClient();
   const {
@@ -85,6 +87,10 @@ async function requireUser(): Promise<User> {
   return user;
 }
 
+/**
+ * Validates (image only, <=5MB) and uploads a file to the catalog-images bucket under the user's folder.
+ * Returns the public URL. Requires auth.
+ */
 export async function uploadImage(file: File, folder: "products" | "profile"): Promise<string> {
   if (!file.type.startsWith("image/")) throw new Error("Please choose an image file.");
   if (file.size > 5 * 1024 * 1024) throw new Error("Images must be 5MB or smaller.");
@@ -105,6 +111,7 @@ export async function uploadImage(file: File, folder: "products" | "profile"): P
 
 /* ---------------- Products ---------------- */
 
+/** The signed-in seller's own products, newest first (RLS-scoped to their seller_id). */
 export function useMyProducts() {
   return useQuery({
     queryKey: ["my-products"],
@@ -124,6 +131,7 @@ export function useMyProducts() {
   });
 }
 
+/** Creates or updates (upsert on id) a product for the current seller; invalidates the seller's and public product caches. */
 export function useSaveProduct() {
   const qc = useQueryClient();
   return useMutation({
@@ -154,6 +162,7 @@ export function useSaveProduct() {
   });
 }
 
+/** Deletes a product by id; invalidates the seller's and public product caches. */
 export function useDeleteProduct() {
   const qc = useQueryClient();
   return useMutation({
@@ -171,6 +180,7 @@ export function useDeleteProduct() {
 
 /* ---------------- Vendor profile (one per seller) ---------------- */
 
+/** The current seller's single vendor profile, or null if they haven't created one. */
 export function useMyVendor() {
   return useQuery({
     queryKey: ["my-vendor"],
@@ -190,6 +200,7 @@ export function useMyVendor() {
   });
 }
 
+/** Saves the seller's vendor profile (one per seller: updates if present, else inserts); invalidates vendor caches. */
 export function useSaveVendor() {
   const qc = useQueryClient();
   return useMutation({

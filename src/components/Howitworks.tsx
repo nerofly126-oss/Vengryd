@@ -1,3 +1,5 @@
+// Landing-page "How it works" section: a 3-step onboarding zigzag plus a grid of
+// platform feature highlights.
 import { motion } from "framer-motion";
 import {
   UserPlus,
@@ -65,6 +67,8 @@ const highlights = [
   },
 ];
 
+// Renders the steps (alternating left/right on desktop via `flip`) and the highlights grid,
+// both animated on scroll.
 const HowItWorks = () => {
   return (
     <section className="py-16 md:py-24 bg-gradient-to-b from-transparent via-card/60 to-transparent">
@@ -120,16 +124,16 @@ const HowItWorks = () => {
 
         {/* What makes vengryd different */}
         <motion.div
-          className="max-w-3xl mt-28 mb-14"
+          className="mt-28 mb-14 max-w-3xl md:ml-auto md:text-right"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <span className="eyebrow-kicker mb-6">The toolkit</span>
+          <span className="eyebrow-kicker mb-6 md:flex-row-reverse">The toolkit</span>
           <h3 className="font-editorial font-semibold leading-[1.02] tracking-tight text-5xl md:text-7xl mb-6">
             More than a <span className="italic text-primary">listing site</span>
           </h3>
-          <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
+          <p className="ml-auto text-muted-foreground text-lg leading-relaxed max-w-2xl">
             A full toolkit for trading within your own community.
           </p>
         </motion.div>
