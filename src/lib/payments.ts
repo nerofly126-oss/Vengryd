@@ -1,29 +1,28 @@
-// Client-side payment helpers: launches the Paystack inline checkout (with a
-// multi-vendor split) and verifies the charge server-side via the `paystack` edge function.
+// Client-side payment helpers. The order total and the multi-vendor split are
+// computed server-side (the `paystack` edge function's "initialize" action) from
+// the persisted order_items, so the client never decides amounts or payout routing.
+// Here we just resume the returned transaction and verify it afterwards.
 import { getSupabaseClient } from "@/lib/supabase";
 
 const PAYSTACK_SCRIPT = "https://js.paystack.co/v2/inline.js";
-const PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string | undefined;
-
-/** One vendor's slice of a split — `share` is the amount that vendor receives, in kobo. */
-export type SplitSubaccount = {
-  subaccount: string;
-  share: number;
-};
 
 type PaystackResponse = { reference?: string; status?: string };
 
 declare global {
   interface Window {
     PaystackPop?: new () => {
-      newTransaction: (opts: Record<string, unknown>) => void;
+      resumeTransaction: (accessCode: string, callbacks?: Record<string, unknown>) => void;
     };
   }
 }
 
-/** True when the Paystack public key is configured. */
+// Optional client flag for whether payments are enabled. The real config (secret
+// key, subaccounts) lives server-side; default to enabled when the flag is unset.
+const PAYMENTS_FLAG = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string | undefined;
+
+/** True when payments are enabled for this deployment. */
 export function isPaymentsConfigured() {
-  return !!PUBLIC_KEY;
+  return PAYMENTS_FLAG !== "off";
 }
 
 let scriptPromise: Promise<void> | null = null;
@@ -43,35 +42,33 @@ function loadPaystack(): Promise<void> {
 }
 
 /**
- * Launch the Paystack modal. Resolves with the response on a completed payment, or
- * null if the buyer closed the modal. `amount` is in kobo; `subaccounts` is a flat
- * split so each vendor is paid their share and the platform keeps the remainder.
+ * Ask the server to create the charge for an order. The edge function computes the
+ * authoritative total + per-vendor split from the persisted order_items and returns
+ * a Paystack access code (the client never supplies amounts or subaccounts).
  */
-export async function startPayment(args: {
-  reference: string;
-  amount: number; // kobo
-  email: string;
-  subaccounts: SplitSubaccount[];
-}): Promise<PaystackResponse | null> {
-  if (!PUBLIC_KEY) throw new Error("Payments are not configured.");
+export async function initializePayment(orderId: string): Promise<string> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.functions.invoke("paystack", {
+    body: { action: "initialize", orderId },
+  });
+  if (error) throw error;
+  const result = data as { accessCode?: string; error?: string };
+  if (result?.error) throw new Error(result.error);
+  if (!result?.accessCode) throw new Error("Could not start payment.");
+  return result.accessCode;
+}
+
+/**
+ * Resume a server-initialized Paystack transaction in the inline modal. Resolves
+ * with the response on a completed payment, or null if the buyer closed the modal.
+ */
+export async function resumePayment(accessCode: string): Promise<PaystackResponse | null> {
   await loadPaystack();
 
   return new Promise((resolve) => {
     let settled = false;
     const popup = new window.PaystackPop!();
-    popup.newTransaction({
-      key: PUBLIC_KEY,
-      email: args.email,
-      amount: args.amount,
-      reference: args.reference,
-      currency: "NGN",
-      // Offer all common Nigerian channels (each only shows if enabled on the Paystack account).
-      channels: ["card", "bank_transfer", "ussd", "bank", "qr", "mobile_money"],
-      split: {
-        type: "flat",
-        bearer_type: "all-proportional",
-        subaccounts: args.subaccounts,
-      },
+    popup.resumeTransaction(accessCode, {
       onSuccess: (transaction: PaystackResponse) => {
         settled = true;
         resolve(transaction);

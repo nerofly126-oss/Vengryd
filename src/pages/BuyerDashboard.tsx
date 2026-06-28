@@ -11,7 +11,7 @@ import { useBuyerArea, useBuyerCoords, getCurrentCoords, reverseGeocode, distanc
 import { toast } from "sonner";
 import { useCart, useWishlist, cartActions, wishlistActions, type StoreItem } from "@/lib/store";
 import { useCreateOrder } from "@/lib/orders";
-import { startPayment, verifyPayment, isPaymentsConfigured, type SplitSubaccount } from "@/lib/payments";
+import { initializePayment, resumePayment, verifyPayment, isPaymentsConfigured } from "@/lib/payments";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
 
 // Slide-in drawer showing either the cart or the wishlist (selected via `open`).
@@ -26,8 +26,6 @@ function CartDrawer({
 }) {
   const navigate = useNavigate();
   const { data: user } = useCurrentUser();
-  const { data: products } = useProducts();
-  const { data: vendors } = useVendors();
   const cart = useCart();
   const wishlist = useWishlist();
   const createOrder = useCreateOrder();
@@ -35,26 +33,9 @@ function CartDrawer({
   const items = open === "cart" ? cart : wishlist;
   const subtotal = cart.reduce((sum, i) => sum + i.price, 0);
 
-  // One subaccount per distinct vendor in the cart. Each vendor's `share` is 90% of their
-  // subtotal in kobo (the platform keeps the remaining 10% as the main account).
-  // Returns null if any item's vendor isn't payout-enabled (shouldn't happen — gated at add-to-cart).
-  const buildSplit = (): SplitSubaccount[] | null => {
-    const bySubaccount = new Map<string, number>();
-    for (const item of cart) {
-      const product = products.find((p) => p.id === item.id);
-      const vendor = product?.sellerId ? vendors.find((v) => v.sellerId === product.sellerId) : null;
-      const subId = vendor?.subaccountId;
-      if (!subId) return null;
-      bySubaccount.set(subId, (bySubaccount.get(subId) ?? 0) + item.price);
-    }
-    return Array.from(bySubaccount.entries()).map(([subaccount, naira]) => ({
-      subaccount,
-      share: Math.round(naira * 0.9 * 100),
-    }));
-  };
-
-  // Checkout flow: gates on auth + payments config, builds the split, creates the order,
-  // launches payment, verifies it, then clears the cart and routes to /orders on success.
+  // Checkout flow: gates on auth + payments config, creates the order (server snapshots
+  // prices/sellers), asks the server to compute the total + split and start the charge,
+  // resumes it, verifies it, then clears the cart and routes to /orders on success.
   const checkout = async () => {
     if (!user) {
       onClose();
@@ -65,20 +46,12 @@ function CartDrawer({
       toast.error("Payments aren't configured yet.");
       return;
     }
-    const subaccounts = buildSplit();
-    if (!subaccounts || subaccounts.length === 0) {
-      toast.error("Some items in your cart aren't available for purchase right now.");
-      return;
-    }
+    if (cart.length === 0) return;
     setPaying(true);
     try {
       const orderId = await createOrder.mutateAsync(cart);
-      const payment = await startPayment({
-        reference: orderId,
-        amount: Math.round(subtotal * 100), // Paystack amounts are in kobo
-        email: user.email ?? "",
-        subaccounts,
-      });
+      const accessCode = await initializePayment(orderId);
+      const payment = await resumePayment(accessCode);
       if (!payment) {
         toast("Payment cancelled — your order is saved as unpaid.");
         return;

@@ -11,7 +11,12 @@ export function useBuyerCoords() {
   const [coords, setCoordsState] = useState<Coords | null>(() => {
     try {
       const raw = localStorage.getItem(COORDS_KEY);
-      return raw ? (JSON.parse(raw) as Coords) : null;
+      if (!raw) return null;
+      const v = JSON.parse(raw) as Partial<Coords>;
+      // Discard malformed/old-schema data so distance math never sees NaN.
+      return typeof v?.lat === "number" && typeof v?.lng === "number" && Number.isFinite(v.lat) && Number.isFinite(v.lng)
+        ? { lat: v.lat, lng: v.lng }
+        : null;
     } catch {
       return null;
     }

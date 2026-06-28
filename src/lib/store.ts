@@ -12,11 +12,21 @@ export type StoreItem = {
 const CART_KEY = "vengryd-cart";
 const WISH_KEY = "vengryd-wishlist";
 
-// Reads and parses a StoreItem[] from localStorage, returning [] on any error.
+// True when a parsed value has the shape we rely on at checkout (id + numeric price).
+function isStoreItem(v: unknown): v is StoreItem {
+  if (typeof v !== "object" || v === null) return false;
+  const o = v as Record<string, unknown>;
+  return typeof o.id === "string" && typeof o.name === "string" && typeof o.price === "number" && Number.isFinite(o.price);
+}
+
+// Reads and parses a StoreItem[] from localStorage, discarding malformed entries
+// (corrupt/old-schema data must never reach the checkout math) and returning [] on error.
 function load(key: string): StoreItem[] {
   try {
     const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as StoreItem[]) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(isStoreItem) : [];
   } catch {
     return [];
   }

@@ -297,14 +297,20 @@ export function useVendor(id?: string) {
     queryFn: async (): Promise<Vendor | null> => {
       if (!isSupabaseConfigured() || !id) return null;
       const supabase = getSupabaseClient();
-      const { data, error } = await supabase
-        .from("vendors")
-        .select("id, slug, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email, flw_subaccount_id, lat, lng, cover_url, bio, tagline, verified, socials, hours, created_at")
-        .or(`slug.eq.${id},id.eq.${id}`)
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data ? mapVendor(data as VendorRow) : null;
+      const columns =
+        "id, slug, name, category_id, seller_id, icon, tint, image_url, area, rating, reviews, services, phone, whatsapp, contact_email, flw_subaccount_id, lat, lng, cover_url, bio, tagline, verified, socials, hours, created_at";
+      // Look up by slug first, then fall back to id. Using parameterized .eq()
+      // (rather than interpolating `id` into a .or() filter string) avoids
+      // PostgREST filter injection via crafted slug/id values in the URL.
+      const bySlug = await supabase.from("vendors").select(columns).eq("slug", id).limit(1).maybeSingle();
+      if (bySlug.error) throw bySlug.error;
+      let row = bySlug.data;
+      if (!row) {
+        const byId = await supabase.from("vendors").select(columns).eq("id", id).limit(1).maybeSingle();
+        if (byId.error) throw byId.error;
+        row = byId.data;
+      }
+      return row ? mapVendor(row as VendorRow) : null;
     },
     initialData: null,
   });

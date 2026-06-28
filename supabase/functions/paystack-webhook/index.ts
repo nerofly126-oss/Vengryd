@@ -25,12 +25,20 @@ async function sign(body: string): Promise<string> {
   return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Constant-time string comparison to avoid leaking the signature via timing.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return mismatch === 0;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const raw = await req.text();
   const signature = req.headers.get("x-paystack-signature");
-  if (!PAYSTACK_SECRET || !signature || signature !== (await sign(raw))) {
+  if (!PAYSTACK_SECRET || !signature || !timingSafeEqual(signature, await sign(raw))) {
     return json({ error: "Unauthorized" }, 401);
   }
 
@@ -46,11 +54,12 @@ Deno.serve(async (req: Request) => {
   if (!reference) return json({ ignored: true });
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
-  const { data: order } = await supabase
+  const { data: order, error: readErr } = await supabase
     .from("orders")
     .select("id, total, payment_status")
     .eq("id", reference)
     .maybeSingle();
+  if (readErr) return json({ error: "Lookup failed" }, 500); // non-200 → Paystack retries
   if (!order) return json({ ignored: true });
   if (order.payment_status === "paid") return json({ ok: true }); // idempotent
 
@@ -68,10 +77,13 @@ Deno.serve(async (req: Request) => {
     Number(tx?.amount) >= Math.round(Number(order.total) * 100);
 
   if (ok) {
-    await supabase
+    // Conditional update = atomic idempotency: only the first delivery flips it to paid.
+    const { error: upErr } = await supabase
       .from("orders")
       .update({ payment_status: "paid", flw_tx_id: String(tx.id ?? reference), paid_at: new Date().toISOString() })
-      .eq("id", order.id);
+      .eq("id", order.id)
+      .neq("payment_status", "paid");
+    if (upErr) return json({ error: "Update failed" }, 500); // non-200 → Paystack retries
   }
   return json({ ok });
 });
