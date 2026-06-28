@@ -14,6 +14,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useCurrentUser, useSignOut, displayName, initials } from "@/lib/auth";
+import { useMyProfile } from "@/lib/profile";
 
 // Settings page (route: /settings) — account info, appearance, quick links, support, and account actions.
 
@@ -72,11 +73,12 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
 const Settings = () => {
   const { theme, setTheme } = useTheme();
   const { data: user } = useCurrentUser();
+  const { data: profile } = useMyProfile();
   const signOut = useSignOut();
 
-  const name = displayName(user);
-  const username = (user?.user_metadata?.username as string | undefined) ?? undefined;
-  const role = (user?.user_metadata?.role as string | undefined) ?? "buyer";
+  const name = profile?.fullName?.trim() || displayName(user);
+  const username = profile?.username ?? (user?.user_metadata?.username as string | undefined) ?? undefined;
+  const role = profile?.role ?? "buyer";
 
   return (
     <div className="min-h-screen bg-background font-body text-foreground">

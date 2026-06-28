@@ -237,9 +237,9 @@ export function useSendMessage(conversationId?: string) {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Sign in to send a message.");
       if (!conversationId) throw new Error("No conversation selected.");
-      const { error } = await supabase
-        .from("messages")
-        .insert({ conversation_id: conversationId, sender_id: user.id, body: trimmed });
+      const { error } = await supabase.functions.invoke("order-notifications", {
+        body: { action: "send-message", conversationId, body: trimmed },
+      });
       if (error) throw error;
     },
     onSuccess: () => {

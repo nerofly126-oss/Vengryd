@@ -244,6 +244,7 @@ export function useSaveVendor() {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["my-vendor"] });
+      void qc.invalidateQueries({ queryKey: ["my-profile"] });
       void qc.invalidateQueries({ queryKey: ["catalog-vendors"] });
     },
   });

@@ -189,7 +189,9 @@ export function useToggleFulfilled() {
   return useMutation({
     mutationFn: async ({ itemId, fulfilled }: { itemId: string; fulfilled: boolean }) => {
       const supabase = getSupabaseClient();
-      const { error } = await supabase.from("order_items").update({ fulfilled }).eq("id", itemId);
+      const { error } = await supabase.functions.invoke("order-notifications", {
+        body: { action: "mark-fulfilled", itemId, fulfilled },
+      });
       if (error) throw error;
     },
     onSuccess: () => {

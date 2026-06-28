@@ -1,8 +1,16 @@
 // Profile helpers: derive role/name from a Supabase user and best-effort client-side profile row creation.
+import { useQuery } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
-import { getSupabaseClient } from "@/lib/supabase";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
 export type AppRole = "buyer" | "seller";
+export type Profile = {
+  id: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  username: string | null;
+  role: AppRole;
+};
 
 /** Reads the user's role from user/app metadata, defaulting to "buyer". */
 export function getRoleFromUser(user: User | null | undefined): AppRole {
@@ -36,4 +44,35 @@ export async function ensureProfile(user: User) {
   } catch {
     /* ignore — profile creation is handled server-side */
   }
+}
+
+/** The signed-in user's database profile. `profiles.role` is the source of truth. */
+export function useMyProfile() {
+  return useQuery({
+    queryKey: ["my-profile"],
+    queryFn: async (): Promise<Profile | null> => {
+      if (!isSupabaseConfigured()) return null;
+      const supabase = getSupabaseClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, username, role")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return {
+        id: data.id as string,
+        fullName: (data.full_name as string | null) ?? null,
+        avatarUrl: (data.avatar_url as string | null) ?? null,
+        username: (data.username as string | null) ?? null,
+        role: data.role === "seller" ? "seller" : "buyer",
+      };
+    },
+    initialData: null,
+  });
 }

@@ -29,6 +29,31 @@ create trigger profiles_lock_fields
 before insert or update on public.profiles
 for each row execute function public.lock_profile_fields();
 
+-- Signup metadata is client-supplied, so new accounts always start as buyers.
+-- Seller capability is granted below when a real vendor profile is created.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_name text := coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1));
+  v_user text := nullif(new.raw_user_meta_data ->> 'username', '');
+begin
+  begin
+    insert into public.profiles (id, full_name, username, role)
+    values (new.id, v_name, v_user, 'buyer')
+    on conflict (id) do nothing;
+  exception when unique_violation then
+    insert into public.profiles (id, full_name, role)
+    values (new.id, v_name, 'buyer')
+    on conflict (id) do nothing;
+  end;
+  return new;
+end;
+$$;
+
 -- ---------------- vendors: clients cannot self-verify or reroute payouts --------
 -- `verified` is a trust badge; `flw_subaccount_id` decides where checkout money is
 -- split to. Both are set server-side only (admin / paystack edge function).
@@ -52,6 +77,39 @@ drop trigger if exists vendors_lock_fields on public.vendors;
 create trigger vendors_lock_fields
 before insert or update on public.vendors
 for each row execute function public.lock_vendor_fields();
+
+-- A saved vendor storefront is the trusted "become seller" action. The same
+-- account remains a buyer too; this role is additive capability for seller tools.
+create or replace function public.promote_vendor_owner_to_seller()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.seller_id is not null then
+    update public.profiles
+    set role = 'seller'
+    where id = new.seller_id
+      and role <> 'seller';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists vendors_promote_owner_to_seller on public.vendors;
+create trigger vendors_promote_owner_to_seller
+after insert or update of seller_id on public.vendors
+for each row execute function public.promote_vendor_owner_to_seller();
+
+update public.profiles p
+set role = 'seller'
+where role <> 'seller'
+  and exists (
+    select 1
+    from public.vendors v
+    where v.seller_id = p.id
+  );
 
 -- ---------------- orders: clients cannot touch financial / payment fields -------
 -- Buyers may still update `status` (e.g. cancel). Everything money- or

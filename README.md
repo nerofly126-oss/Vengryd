@@ -69,7 +69,7 @@ src/
                     SellerNav, etc.); src/components/ui = shadcn primitives
 supabase/
   migrations/       SQL schema + RLS policies (run in order)
-  functions/        Deno edge functions (paystack, paystack-webhook, waitlist-email)
+  functions/        Deno edge functions (paystack, paystack-webhook, order-notifications)
 ```
 
 Every function/component has an explanatory comment above it.

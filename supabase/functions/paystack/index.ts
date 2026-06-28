@@ -13,6 +13,10 @@ const PAYSTACK_SECRET = Deno.env.get("PAYSTACK_SECRET_KEY") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
+const FROM_EMAIL = Deno.env.get("TRANSACTIONAL_FROM_EMAIL") || "";
+const APP_NAME = Deno.env.get("TRANSACTIONAL_APP_NAME") || "vengryd";
+const SITE_URL = Deno.env.get("TRANSACTIONAL_SITE_URL") || "https://vengryd.com";
 const PLATFORM_COMMISSION = 10; // percent kept by the platform
 // Optional CORS allowlist (comma-separated origins). Falls back to "*" when unset.
 const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") ?? "")
@@ -46,6 +50,114 @@ function psHeaders() {
 const admin = () => createClient(SUPABASE_URL, SERVICE_ROLE);
 
 const isString = (v: unknown): v is string => typeof v === "string" && v.length > 0;
+const money = (amount: number | string) => `₦${Number(amount).toLocaleString("en-NG")}`;
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+async function sendEmail(payload: { to: string | string[]; subject: string; text: string; html: string }) {
+  if (!RESEND_API_KEY || !FROM_EMAIL) return;
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: FROM_EMAIL, ...payload }),
+  });
+  if (!response.ok) console.error("Resend email failed", response.status, await response.text());
+}
+
+async function userEmail(supabase: ReturnType<typeof admin>, userId: string | null | undefined) {
+  if (!userId) return null;
+  const { data } = await supabase.auth.admin.getUserById(userId);
+  return data.user?.email ?? null;
+}
+
+async function sendPayoutConnectedEmail(email: string | undefined, vendorName: string, accountName: string | null) {
+  if (!email) return;
+  const safeVendor = escapeHtml(vendorName);
+  const accountLine = accountName ? ` for ${accountName}` : "";
+  await sendEmail({
+    to: email,
+    subject: "Your payout account is connected",
+    text: `Your ${APP_NAME} payout account${accountLine} is connected for ${vendorName}. Buyers can now pay you at checkout.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+        <p>Your payout account${escapeHtml(accountLine)} is connected for <strong>${safeVendor}</strong>.</p>
+        <p>Buyers can now pay you at checkout. Sales are split automatically through Paystack.</p>
+      </div>
+    `,
+  });
+}
+
+async function sendOrderPaidEmails(supabase: ReturnType<typeof admin>, orderId: string) {
+  const { data: order } = await supabase
+    .from("orders")
+    .select("id, buyer_id, total, created_at")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order) return;
+
+  const { data: items } = await supabase
+    .from("order_items")
+    .select("name, unit_price, quantity, seller_id")
+    .eq("order_id", orderId);
+  const rows = (items ?? []) as { name: string; unit_price: number | string; quantity: number; seller_id: string | null }[];
+  const itemText = rows.map((it) => `- ${it.name} x${it.quantity}: ${money(Number(it.unit_price) * it.quantity)}`).join("\n");
+  const itemHtml = rows
+    .map((it) => `<li>${escapeHtml(it.name)} x${it.quantity} — ${money(Number(it.unit_price) * it.quantity)}</li>`)
+    .join("");
+
+  const buyerEmail = await userEmail(supabase, order.buyer_id as string);
+  if (buyerEmail) {
+    await sendEmail({
+      to: buyerEmail,
+      subject: `Payment confirmed for order #${String(order.id).slice(0, 8)}`,
+      text: `Thanks for your purchase on ${APP_NAME}.\n\nOrder: #${String(order.id).slice(0, 8)}\nTotal: ${money(order.total as string | number)}\n\n${itemText}\n\nView your orders: ${SITE_URL}/orders`,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+          <p>Thanks for your purchase on <strong>${escapeHtml(APP_NAME)}</strong>.</p>
+          <p><strong>Order:</strong> #${String(order.id).slice(0, 8)}<br /><strong>Total:</strong> ${money(order.total as string | number)}</p>
+          <ul>${itemHtml}</ul>
+          <p><a href="${escapeHtml(SITE_URL)}/orders" style="color: #0f766e;">View your orders</a></p>
+        </div>
+      `,
+    });
+  }
+
+  const sellerIds = [...new Set(rows.map((it) => it.seller_id).filter(isString))];
+  const { data: vendors } = sellerIds.length
+    ? await supabase.from("vendors").select("seller_id, name").in("seller_id", sellerIds)
+    : { data: [] };
+  const vendorName = new Map((vendors ?? []).map((v: { seller_id: string; name: string }) => [v.seller_id, v.name]));
+  for (const sellerId of sellerIds) {
+    const sellerEmail = await userEmail(supabase, sellerId);
+    if (!sellerEmail) continue;
+    const sellerItems = rows.filter((it) => it.seller_id === sellerId);
+    const subtotal = sellerItems.reduce((sum, it) => sum + Number(it.unit_price) * it.quantity, 0);
+    const sellerText = sellerItems.map((it) => `- ${it.name} x${it.quantity}: ${money(Number(it.unit_price) * it.quantity)}`).join("\n");
+    const sellerHtml = sellerItems
+      .map((it) => `<li>${escapeHtml(it.name)} x${it.quantity} — ${money(Number(it.unit_price) * it.quantity)}</li>`)
+      .join("");
+    await sendEmail({
+      to: sellerEmail,
+      subject: `New paid order for ${vendorName.get(sellerId) ?? APP_NAME}`,
+      text: `You have a new paid order on ${APP_NAME}.\n\nOrder: #${String(order.id).slice(0, 8)}\nSubtotal: ${money(subtotal)}\n\n${sellerText}\n\nManage orders: ${SITE_URL}/seller?tab=orders`,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+          <p>You have a new paid order on <strong>${escapeHtml(APP_NAME)}</strong>.</p>
+          <p><strong>Order:</strong> #${String(order.id).slice(0, 8)}<br /><strong>Subtotal:</strong> ${money(subtotal)}</p>
+          <ul>${sellerHtml}</ul>
+          <p><a href="${escapeHtml(SITE_URL)}/seller?tab=orders" style="color: #0f766e;">Manage orders</a></p>
+        </div>
+      `,
+    });
+  }
+}
 
 async function listBanks(cors: Record<string, string>) {
   const res = await fetch("https://api.paystack.co/bank?currency=NGN&country=nigeria", { headers: psHeaders() });
@@ -127,6 +239,10 @@ async function createSubaccount(
     .update({ flw_subaccount_id: subaccountCode })
     .eq("id", vendor.id);
   if (vUpErr) return json({ error: vUpErr.message }, cors, 500);
+
+  await sendPayoutConnectedEmail(user.email, vendor.name, accountName).catch((error) => {
+    console.error("Payout email failed", error);
+  });
 
   return json({ ok: true, accountName, subaccountId: subaccountCode }, cors);
 }
@@ -264,11 +380,18 @@ async function verifyPayment(
     return json({ paid: false, error: "Payment could not be verified." }, cors, 400);
   }
 
-  await supabase
+  const { data: updated, error: updateError } = await supabase
     .from("orders")
     .update({ payment_status: "paid", flw_tx_id: String(tx.id ?? reference), paid_at: new Date().toISOString() })
     .eq("id", orderId)
-    .neq("payment_status", "paid");
+    .neq("payment_status", "paid")
+    .select("id");
+  if (updateError) return json({ paid: false, error: updateError.message }, cors, 500);
+  if ((updated ?? []).length > 0) {
+    await sendOrderPaidEmails(supabase, orderId).catch((error) => {
+      console.error("Order paid email failed", error);
+    });
+  }
   return json({ paid: true }, cors);
 }
 

@@ -1,2 +1,5 @@
-[functions.waitlist-email]
+[functions.paystack-webhook]
 verify_jwt = false
+
+[functions.order-notifications]
+verify_jwt = true
